@@ -1,5 +1,6 @@
 #pragma once
-
+#include <stdlib.h>
+#include <assert.h>
 /**
   * A class used to wrap around raw image data.
   * Takes in a Pixel parameter that must have the following constructor:
@@ -12,11 +13,17 @@
   * */
 
 template<class Pixel>
-class Image
+class ImageRef
 {
     unsigned char* mData;
-    size_t mWidth, mHeight, mComponents, mComponentWidth, mStep, mDataSize, mPixelOffset;
+    size_t mWidth, mHeight, mComponents, mComponentWidth, mStep, mDataSize;
 public:
+
+    ImageRef() : mData(nullptr), mWidth(0), mHeight(0), mComponents(0),
+        mComponentWidth(0), mStep(0), mDataSize(0)
+    {
+
+    }
 
     /** Wraps around the given data.
       * @param data The image data
@@ -27,25 +34,22 @@ public:
       * @param step The size in bytes given to store each pixel
       * @param pixelOffset The number of bytes in padding at the start of each pixel.
       * */
-    Image(unsigned char* data,
+    ImageRef(unsigned char* data,
              size_t width,
              size_t height,
              size_t components,
              size_t componentWidth,
-             size_t step,
-             size_t pixelOffset)
+             size_t step)
                 : mData(data),
                   mWidth(width),
                   mHeight(height),
                   mComponents(components),
                   mComponentWidth(componentWidth),
                   mStep(step),
-                  mDataSize(width*height*step),
-                  mPixelOffset(pixelOffset)
+                  mDataSize(width*height*step)
     {
         assert(Pixel::logicalSize() == componentWidth*components);
         assert(mComponentWidth <= mStep);
-        assert(mPixelOffset < componentWidth*components);
     }
 
 
@@ -53,10 +57,12 @@ public:
     size_t height() { return mHeight; }
     size_t components() { return mComponents; }
     size_t step() { return mStep; }
+    unsigned char* dataBegin() { return mData; }
+    unsigned char* dataEnd() { return mData + mDataSize; }
 
     Pixel pixelAt(size_t x, size_t y)
     {
-        const size_t offset = (x  + mWidth * y) * mStep + mPixelOffset;
+        const size_t offset = (x  + mWidth * y) * mStep;
         assert(offset < mDataSize);
         return Pixel(mData + offset);
     }

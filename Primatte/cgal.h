@@ -33,4 +33,4 @@ typedef CGAL::Polyhedron_traits_3<Kernel> PolyhedronTraits;
 typedef CGAL::Polyhedron_3<PolyhedronTraits> Polyhedron;
 
 
-Sphere* GetBoundingSphere(const std::vector<Point>& points, Real collisionRadius);
+Sphere* FindBoundingSphere(const std::vector<Point>& points, Real collisionRadius);
