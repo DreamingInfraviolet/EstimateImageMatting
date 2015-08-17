@@ -32,3 +32,16 @@ std::string ToHexString(const T t)
     ss << std::hex << t;
     return ss.str();
 }
+
+/* Timer macros. Usage:
+ * '''
+ * START_TIMER(myFunkyTimer);
+ * doHeavyCode();
+ * END_TIMER(myFunkyTimer);
+ * '''
+ */
+
+#include <chrono>
+#define START_TIMER(t) auto t = std::chrono::system_clock::now(); Inform("Starting timer: "#t);
+#define END_TIMER(t) {Inform("Stopping timer: "#t + std::string(" : ") + \
+    ToString(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - t).count()));}

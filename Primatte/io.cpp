@@ -1,6 +1,5 @@
 #include "io.h"
 #include <iostream>
-#include <map>
 
 void Error(const std::string& msg)
 {

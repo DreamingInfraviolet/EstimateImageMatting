@@ -1,118 +1,127 @@
 #include "application.h"
 #include <vector>
 #include <cassert>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include "polyhedronalphagenerator.h"
-#include <polyhedronfittingalgorithms.h>
+#include <opencv2/opencv.hpp>
+#include <fittingalgorithmspolyhedron.h>
 #include "io.h"
+#include "coloursegmenters.h"
+#include "boundingpolyhedron.h"
+#include "cgal.h"
+#include "alphalocator.h"
 
-Application::Application() : mHistogram(mImageRef) {}
+Application::Application() :
+    mInputAssembler(nullptr),
+    mAlgorithm(nullptr) {}
 
-bool Application::initialiseImage()
+Application::~Application()
 {
-    //Load image
-    Inform("Loading image");
-    cv::Mat cimagein = cv::imread("test.bmp",  CV_LOAD_IMAGE_COLOR);
-    if(!cimagein.data)
-    {
-        Error("Could not load image");
-        return false;
-    }
-
-    //Convert image to rgb
-    cimagein.convertTo(mImage, CV_8UC3);
-
-    mImageRef = ImageRef<PixelRGB8>(mImage.data, mImage.cols, mImage.rows,
-                           mImage.channels(), 1, 1*mImage.channels());
-
-    Inform("Loaded image with dimensions (" +
-           ToString(mImageRef.width()) + ", " +
-           ToString(mImageRef.height()) + ")");
-
-    //Get histogram from image (hist is a reference)
-    auto hist = mHistogram.histogram();
-
-    //Prepare 3D floating point points
-    mPoints.reserve(hist.size());
-    for(auto it = hist.begin(); it != hist.end(); ++it)
-        mPoints.push_back(Point(it->rf(), it->gf(), it->bf()));
-    return true;
+    delete mAlgorithm;
+    delete mInputAssembler;
 }
 
 void Application::init()
 {
-  Inform("Running");
+    try
+    {
+        using namespace anima::ia;
+        using namespace anima::af;
+        using namespace anima::oa;
 
-  //Restore previous Application state.
-  restoreStateFromFile();
+        Inform("Running");
+        restoreStateFromFile();
 
-  if(!initialiseImage())
-      return;
+        Inform("Processing input");
 
-  TestVertexFitting fitter;
+        cv::Mat imageMat = InputAssembler::loadRgbMatFromFile("test.bmp");
 
-  PolyhedronAlphaGeneratorData generatorData;
-  generatorData.boundingPolyhedronData.meshPath = "objects/sphere.obj";
-  generatorData.boundingPolyhedronData.fitter = &fitter;
-  generatorData.boundingPolyhedronData.scaleMultiplier = 1.1f;
-  generatorData.points = &mPoints;
+        InputAssemblerDescriptor iaDesc;
+        iaDesc.inputSource = InputAssemblerDescriptor::EMEMORY;
+        iaDesc.inputSourceMemory.data = imageMat.data;
+        iaDesc.inputSourceMemory.dataSize = imageMat.rows*imageMat.cols*imageMat.channels();
+        iaDesc.inputSourceMemory.step = imageMat.channels();
+        iaDesc.inputSourceMemory.type = InputAssemblerDescriptor::EPIXEL_RGB8;
+        iaDesc.ipd.comparisonBitsToIgnore = 2;
+        iaDesc.ipd.order = InputProcessingDescriptor::ERandomOutliersGrid;
+        iaDesc.ipd.removeOutliers = false;
+        iaDesc.ipd.removeOutliersK = 3;
+        iaDesc.ipd.gridSimplify = false;
+        iaDesc.ipd.gridSimplifyEpsilon = 0.04;
+        iaDesc.ipd.randomSimplify = true;
+        iaDesc.ipd.randomSimplifyPercentage = 80.0;
 
-  mGenerator = IAlphaGenerator::create(&generatorData);
-  if(!mGenerator
-   ||!mGenerator->analyse())
-      return;
+        mInputAssembler = new InputAssembler(iaDesc);
+
+        Inform("Creating primatte algorithm");
+        anima::alg::primatte::TestVertexFitting fitter;
+        anima::alg::primatte::DistanceColourSegmenter segmenter;
+        anima::alg::primatte::AlphaDistanceLocator alphaLocator;
+
+        AlgorithmFactoryDescriptor afDesc;
+        afDesc.type = AlgorithmFactoryDescriptor::EPrimatte;
 
 
-  cv::Mat alpha = findAlpha();
+        afDesc.algPrimatteDesc.boundingPolyhedronDesc.fitter = &fitter;
+        afDesc.algPrimatteDesc.boundingPolyhedronDesc.meshPath = "objects/sphere.obj";
+        afDesc.algPrimatteDesc.boundingPolyhedronDesc.scaleMultiplier = 1.1f;
+        afDesc.algPrimatteDesc.segmenter = &segmenter;
+        afDesc.algPrimatteDesc.backgroundPoint = anima::alg::Point(0,0,1);
+        afDesc.algPrimatteDesc.input = mInputAssembler;
+        afDesc.algPrimatteDesc.alphaLocator = &alphaLocator;
 
-  //Prepare drawing
-  glClearColor(0.9,0.9,0.9,1);
-  glDisable(GL_LIGHTING);
+        AlgorithmFactory af;
+        mAlgorithm = af.produce(afDesc);
+        if(!mAlgorithm)
+            throw std::runtime_error("Could not create algorithm");
+
+        Inform("Gathering results");
+        //Set not to save result for now as it's not implemented.
+        OutputAssemblerDescriptor oaDesc;
+        oaDesc.algorithm = mAlgorithm;
+        oaDesc.imageSource = &imageMat;
+        oaDesc.generateFile = false;
+        oaDesc.showPreview = false;
+        oaDesc.memoryOptions.destinationImage = nullptr;
+        oaDesc.memoryOptions.destinationRaw = nullptr;
+        oaDesc.memoryOptions.destinationRawSize = 0;
+
+        OutputAssembler oa;
+        oa.assemble(oaDesc);
+
+        //Prepare drawing
+        glClearColor(0.9,0.9,0.9,1);
+        glDisable(GL_LIGHTING);
+    }
+    catch(std::runtime_error err)
+    {
+        Error(err.what());
+        this->close();
+    }
+    catch(...)
+    {
+        Error("Something happened");
+        this->close();
+    }
 }
 
-cv::Mat Application::findAlpha()
-{
-    std::vector<float> alphas = mGenerator->findAlphas(mPoints);
-    if(alphas.size()==0)
-        return cv::Mat();
-
-    assert(mImageRef.height()*mImageRef.width() == alphas.size());
-
-    cv::Mat alphaMat;
-    alphaMat.create(mImageRef.height(), mImageRef.width(), CV_32FC1);
-    memcpy(alphaMat.data, &alphas[0],sizeof(float)*alphas.size());
-    return alphaMat;
-}
-
-void showMatImage(const cv::Mat& mat)
-{
-    using namespace cv;
-    namedWindow( "Image", WINDOW_AUTOSIZE );
-    imshow( "Image", mat );
-}
-
-// Draws the points and sphere
 void Application::draw()
 {
-
   drawBackground();
 
   //Draw points
   glPointSize(5.0);
   glLineWidth(3);
   glBegin(GL_POINTS);
-  for(auto it = mPoints.begin(); it!=mPoints.end(); ++it)
+  for(auto it = mInputAssembler->points().begin(); it!=mInputAssembler->points().end(); ++it)
   {
       glColor3f(it->x(), it->y(), it->z());
       glVertex3f(it->x(), it->y(), it->z());
   }
   glColor4f(0,0,0,1);
-
   glEnd();
 
+  //Draw algorithm
   glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-  mGenerator->debugDraw();
+  mAlgorithm->debugDraw();
   glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 }
 

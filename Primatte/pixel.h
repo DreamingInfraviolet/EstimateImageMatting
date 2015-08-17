@@ -1,17 +1,17 @@
 #pragma once
 #include <stdlib.h>
+#include <cassert>
+#include <cstdint>
 #include "io.h"
+#include "util.h"
 
-//define this byte mask to be applied to each colour component
-//before comparison. 0xff is full precision. 0x00 is no precision.
-//Undefine for full precision.
-#define PIXEL_IGNORE_MASK 0xF9
-
+typedef uint8_t byte;
+//Assumes little endian
 class PixelRGB8
 {
 
 public:
-    unsigned char mR,mG,mB, _padding;
+    uint8_t mR,mG,mB, _padding;
 
 
     PixelRGB8() : mR(0),mG(0),mB(0), _padding(0) {}
@@ -27,22 +27,34 @@ public:
         _padding = 0;
     }
 
-    bool operator < (PixelRGB8 px2) const
+    static uint32_t comparisonBitmask;
+
+    /** Must be called before any comparisons take place. */
+    static void comparisonBitsToIgnore(int n)
     {
-#ifdef PIXEL_IGNORE_MASK
-        PixelRGB8 px1 = *this;
-        px1.mR &= PIXEL_IGNORE_MASK;
-        px1.mG &= PIXEL_IGNORE_MASK;
-        px1.mB &= PIXEL_IGNORE_MASK;
+        assert(n >= 0 && n <= 8);
+        uint32_t componentMask = (0x000000ff >> (n)) << (n);
 
-        px2.mR &= PIXEL_IGNORE_MASK;
-        px2.mG &= PIXEL_IGNORE_MASK;
-        px2.mB &= PIXEL_IGNORE_MASK;
+        if(!isBigEndian())
+        {
+            comparisonBitmask =
+                    (componentMask) |
+                    (componentMask << 8) |
+                    (componentMask << 16);
+        }
+        else
+        {
+            comparisonBitmask =
+                    (componentMask << 8) |
+                    (componentMask << 16) |
+                    (componentMask << 24);
+        }
+    }
 
-        return (*reinterpret_cast<const int*>(&px1)) < (*reinterpret_cast<const int*>(&px2));
-#else
-        return (*reinterpret_cast<const int*>(this)) < (*reinterpret_cast<const int*>(&px2));
-#endif
+    bool operator < (const PixelRGB8& px2) const
+    {
+        return (*reinterpret_cast<const uint32_t*>(this) & comparisonBitmask) <
+                (*reinterpret_cast<const uint32_t*>(&px2) & comparisonBitmask);
     }
 
 
@@ -65,30 +77,6 @@ public:
         str<<"("<<ToString((int)px.mR) << ", "<<ToString((int)px.mG)<<", "<<ToString((int)px.mB)<<")";
         return str;
     }
-
-    //    //The following two types are used to allow external classes to construct
-    //    //pixel-specific histograms covering the range of a pixel.
-
-    //    //Defines the type of the index to use to for a histogram
-    //    //Must be an integral type.
-    //    static int index;
-
-    //    //The maximum index that the pixel may have.
-    //    static decltype(index) maxIndex;
-    //    static PixelRGB8 fromIndex(const decltype(index) i)
-    //    {
-    //        PixelRGB8 out;
-    //        out.mR = i & 0x000000ff;
-    //        out.mG = i & 0x0000ff00;
-    //        out.mB = i & 0x00ff0000;
-
-    //        return out;
-    //    }
-
-    //    decltype(index) toIndex() const
-    //    {
-    //        return (((int)mB) << 16) | (((int)mG<<8)) | ((int)mR);
-    //    }
 };
 
 //Single component floating point image.
@@ -136,6 +124,7 @@ public:
 
 //Single component floating point image.
 //Stores a reference to the image instead of copying.
+//Thus, setting pixels affects the original.
 class PixelFloatR32Ref
 {
 public:
@@ -168,13 +157,13 @@ public:
         return sizeof(float);
     }
 
-    float r() const {return *mComponent;}
-    float g() const {return *mComponent;}
-    float b() const {return *mComponent;}
+    float& r() const {return *mComponent;}
+    float& g() const {return *mComponent;}
+    float& b() const {return *mComponent;}
 
-    float rf() const {return *mComponent;}
-    float gf() const {return *mComponent;}
-    float bf() const {return *mComponent;}
+    float& rf() const {return *mComponent;}
+    float& gf() const {return *mComponent;}
+    float& bf() const {return *mComponent;}
 
 
     friend std::ostream& operator << (std::ostream& str, const PixelFloatR32Ref& px)

@@ -1,9 +1,3 @@
-/*
-  Source: http://saurabhg.com/programming/wavefront-obj-reader-building-cgalpolyhedron_3/
-  This class allows easy mesh loading from .obj files.
-  */
-
-
 #pragma once
 #include "CGAL/Polyhedron_incremental_builder_3.h"
 #include "CGAL/Modifier_base.h"
@@ -12,6 +6,11 @@
 #include <fstream>
 #include <exception>
 #include "io.h"
+/*
+  Source: http://saurabhg.com/programming/wavefront-obj-reader-building-cgalpolyhedron_3/
+  This class allows easy mesh loading from .obj files.
+  */
+
 
 namespace SMeshLib {
 namespace IO       {
@@ -36,8 +35,7 @@ public:
         std::ifstream _file(mFileName.c_str());
         if(_file.fail())
         {
-            Error("SMeshLib::importOBJ: Error opening " + mFileName);
-            throw std::exception();
+            throw std::runtime_error("Could not load " + mFileName);
         }
 
         // Count the number of vertices and facets.
@@ -153,11 +151,10 @@ void importOBJ(const std::string& fileName, TPoly* polyhedron)
         }
         catch(const CGAL::Assertion_exception&)
         {
-            Error("SMeshLib::importOBJ: Error loading " + fileName);
-            throw std::exception();
+            throw std::runtime_error("SMeshLib::importOBJ: Error building " + fileName);
         }
     }
 }
 
-};	// End namespace IO.
-};	// End namespace SMeshLib.
+}	// End namespace IO.
+}	// End namespace SMeshLib.

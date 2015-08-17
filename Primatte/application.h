@@ -1,35 +1,36 @@
-#ifndef PREVIEWER_H
-#define PREVIEWER_H
+#pragma once
 #include <QGLViewer/qglviewer.h>
-#include "imageref.h"
-#include "cgal.h"
-#include "pixel.h"
-#include <opencv2/opencv.hpp>
-#include "ialphagenerator.h"
-#include "colourhistogram.h"
+#include <memory>
+#include "inputassembler.h"
+#include "algorithmfactory.h"
+#include "outputassembler.h"
 
+/** The main application class. It is to be replaced in the future by a proper
+  * driver. */
 class Application: public QGLViewer
 {
 public:
+    /** Initialises variables to null. */
     Application();
+
+    /** Deletes internal pointers. */
+    ~Application();
+
+    /** Draws a preview of the scene. */
     virtual void draw();
+
+    /** Draws the background plane. */
     void drawBackground();
+
+    /** Initialises the system. */
     virtual void init();
 
-    //Loads the image, calculates the histogram and converts it to points.
-    bool initialiseImage();
-
-    //Finds the alpha image.
-    cv::Mat findAlpha();
-
+    /** Used by qglviewer to provide a help string during preview. */
     virtual QString helpString() const;
 
-    cv::Mat mImage;
-    ImageRef<PixelRGB8> mImageRef;
-    CGALRgbColourHistogram<PixelRGB8> mHistogram;
-    std::vector<Point> mPoints;
-    IAlphaGenerator* mGenerator;
+    /* The input. */
+    anima::ia::InputAssembler* mInputAssembler;
 
+    /* The currently used algorithm. */
+    anima::alg::IAlgorithm* mAlgorithm;
 };
-
-#endif // PREVIEWER_H

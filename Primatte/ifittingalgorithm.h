@@ -1,22 +1,29 @@
-#ifndef IFITTINGALGORITHM_H
-#define IFITTINGALGORITHM_H
+#pragma once
 #include "cgal.h"
-#include <vector>
 #include "matrixd.h"
 
-/**
-  * Defines the interface that must be implemented by a
-  * bounding object fitting algorithm.
-  * */
-
-
-class IPolyhedronFittingAlgorithm
+/** An interface defining the functionality needed by an algorithm that
+  * fits a polyhedron (that's assumed to be around the points) tightly
+  * on per-vertex granularity (aka, shrinking the sphere).
+  */
+namespace anima
 {
-public:
-    virtual void fit(Polyhedron& poly, math::vec3 centre,
-                     std::vector<Point>* points) = 0;
-    virtual ~IPolyhedronFittingAlgorithm(){}
-};
+    namespace alg
+    {
+        namespace primatte
+        {
+            class IFittingAlgorithm
+            {
+            public:
+                virtual ~IFittingAlgorithm(){}
 
-
-#endif // IFITTINGALGORITHM_H
+                /** Fits the polyhedron around the points.
+                  * @param poly The polyhedron reference to be fitted.
+                  * @param centre The centre towards which the polyhedron vertices should be moved.
+                  * @param points The points around which to fit.
+                  */
+                virtual void fit(Polyhedron& poly, const Point centre, const std::vector<Point>& points) = 0;
+            };
+        }
+    }
+}

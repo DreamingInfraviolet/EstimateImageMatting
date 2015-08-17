@@ -1,8 +1,13 @@
 #pragma once
 
+/*
+ * A series of vec3{2,3,4} and mat{2,3,4} classes.
+ * @author Anima.
+ */
+
 namespace math
 {
-    //Affects vecX and matX
+//Affects vecX and matX
 
 #ifdef MATRIX_D_DOUBLE
     typedef double matReal;
