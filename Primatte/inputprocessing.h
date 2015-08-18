@@ -1,8 +1,8 @@
 #pragma once
 #include <vector>
 #include <set>
-#include "pixel.h"
 #include "cgal.h"
+#include <opencv2/opencv.hpp>
 
 /* A series of functions that convert raw RGB8 pixels into a vector of
  * cleaned up Points. */
@@ -27,11 +27,6 @@ namespace anima
             /** Percentage of points to remove. */
             double removeOutliersPercentage;
 
-            /** This controls the bit precision per component for comparison
-            * when removing duplicates. Range from 0 to 8 (lower=better).
-            */
-            size_t comparisonBitsToIgnore;
-
             /** number of neighbors.*/
             size_t removeOutliersK;
 
@@ -48,12 +43,16 @@ namespace anima
             /** Removes points at random. */
             bool randomSimplify;
 
+            /** Used for early stage pre-processing where only one point is kept per 3D grid box. */
+            unsigned gridSize;
+
             bool validate()
             {
-                if(comparisonBitsToIgnore > 8 ||
+                if(
                     removeOutliersPercentage<0 ||
                         gridSimplifyEpsilon < 0 ||
-                        randomSimplifyPercentage < 0)
+                        randomSimplifyPercentage < 0 ||
+                        gridSize > 255)
                     return false;
                 else
                     return true;
@@ -61,17 +60,17 @@ namespace anima
         };
 
         /** Takes in a vector of points and a descriptor and returns the cleaned up corresponding normalised points. */
-        std::vector<alg::Point> ProcessPixels(const std::vector<PixelRGB8>& pixels, InputProcessingDescriptor desc);
+        std::vector<alg::Point> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc);
 
         namespace detail
         {
-            /** Finds list of unique pixels. */
-            std::set<PixelRGB8> RemoveDuplicatePixels(const std::vector<PixelRGB8>& pixels, int bitsToIgnore);
+            /** Constructs a 3D grid of booleans to ensure that only one point is kept per box.
+              * Memory consumption = sizeof(bool)*gridSize*gridSize*gridSize. Fairly fast.
+              * Also converts to a vector of points.
+              */
+            std::vector<alg::Point> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize);
 
-            /** Converts pixels to points. */
-            std::vector<alg::Point> PixelsToPoints(const std::set<PixelRGB8>& pixels);
-
-            /** Cleans up the point data accoring to the descriptor. */
+            /** Cleans up the point data accoring to the descriptor using CGAL. */
             void CleanPointData(std::vector<alg::Point>* points, InputProcessingDescriptor desc);
         }
     }

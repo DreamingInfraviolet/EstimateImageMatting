@@ -57,14 +57,14 @@ namespace anima
                 }
             }
 
-            Real BoundingPolyhedron::initialRadius()
+            Real BoundingPolyhedron::initialRadius() const
             {
                 if(!mInitialised)
                     throw::std::runtime_error("Using uninitialised bounding polyhedron");
                 return mInitialRadius;
             }
 
-            void BoundingPolyhedron::debugDraw(math::vec3i colour)
+            void BoundingPolyhedron::debugDraw(math::vec3i colour) const
             {
                 if(!mInitialised)
                     throw::std::runtime_error("Using uninitialised bounding polyhedron");

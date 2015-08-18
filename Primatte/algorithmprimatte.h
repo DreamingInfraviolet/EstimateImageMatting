@@ -28,9 +28,6 @@ namespace anima
                 /* The locator used for alpha generation. */
                 IAlphaLocator* alphaLocator;
 
-                /* The input data. */
-                ia::InputAssembler* input;
-
                 /* The bounding polyhedron descriptor. */
                 BoundingPolyhedronDescriptor boundingPolyhedronDesc;
 
@@ -57,14 +54,14 @@ namespace anima
                 AlgorithmPrimatte(AlgorithmPrimatteDesc desc);
 
                 /** Prepares alpha computation for the given data set. */
-                virtual void prepare();
+                virtual void analyse();
 
                 /** Computes the alphas for the given set of points in relation to the
                   * previously supplied inputs. */
-                virtual std::vector<float> computeAlphas(const std::vector<Point>& input);
+                virtual std::vector<float> computeAlphas(const std::vector<Point>& input) const;
 
                 /** Uses old gl to draw a representation of the internal polyhedrons. */
-                virtual void debugDraw();
+                virtual void debugDraw() const;
             };
         }
     }

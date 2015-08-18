@@ -1,12 +1,17 @@
 #pragma once
-#include "IAlgorithm.h"
-#include "pixel.h"
 #include <opencv2/opencv.hpp>
+#include "cgal.h"
+
 
 /** The output assembler is responsible for evaluating an algorithm
   * and applying it to an image, as well as saving the result. */
 namespace anima
 {
+    namespace alg
+    {
+        class IAlgorithm;
+    }
+
     namespace oa
     {
         /**
@@ -40,7 +45,7 @@ namespace anima
             struct
             {
                 /** The destination memory for storing raw alpha floats. Ignores if null.*/
-                byte* destinationRaw;
+                unsigned char* destinationRaw;
 
                 /** The size in bytes of the raw destination memory. */
                 size_t destinationRawSize;

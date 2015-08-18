@@ -1,4 +1,7 @@
 #include "inputassembler.h"
+#include "matrixd.h"
+#include "io.h"
+#include <set>
 
 namespace anima
 {
@@ -21,62 +24,49 @@ namespace anima
             return imageMat;
         }
 
-        std::vector<PixelRGB8> InputAssembler::loadFromFile(const char* path)
-        {
-            std::vector<PixelRGB8> pixels;
-
-            auto matrgb = loadRgbMatFromFile(path);
-
-            pixels.reserve(matrgb.cols*matrgb.rows);
-            for(int y = 0; y < matrgb.rows; ++y)
-                for(int x = 0; x < matrgb.cols; ++y)
-                    pixels.push_back(matrgb.at<PixelRGB8>(x,y));
-            return pixels;
-        }
-
         InputAssembler::InputAssembler(InputAssemblerDescriptor& desc)
         {
-            //Load the data
-            switch(desc.inputSource)
+            //Convert the input into 3 component float mat.
+
+            if(desc.source == nullptr)
+                throw std::runtime_error("Null source mat");
+
+            double alpha;
+            switch(desc.source->type())
             {
-            case InputAssemblerDescriptor::EMEMORY:
-            {
-                const byte* data = desc.inputSourceMemory.data;
-                size_t step = desc.inputSourceMemory.step;
-                size_t dataSize = desc.inputSourceMemory.dataSize;
-
-                if(desc.inputSourceMemory.type != InputAssemblerDescriptor::EPIXEL_RGB8)
-                    throw std::runtime_error("Invalid source memory type.");
-                if(data == nullptr)
-                    throw std::runtime_error("Image data is null.");
-                if(dataSize % step !=0)
-                    throw std::runtime_error("Data size is not divisible by step.");
-
-
-                mPixels.reserve(dataSize/step);
-                const byte* end = data + dataSize;
-                for(const byte* begin = data; begin < end; begin += step)
-                    mPixels.push_back(PixelRGB8(*begin, *(begin+1), *(begin+2)));
-
-            }
-                    break;
-            case InputAssemblerDescriptor::EFILE:
-            {
-                mPixels = loadFromFile(desc.inputSourceFile.path);
-            }
-                    break;
+            case CV_8UC3:
+                alpha = 1/255.f;
+                break;
+            case CV_16UC3:
+                alpha = 1/65535.f;
+                break;
+            case CV_32FC3:
+                alpha = 1.f;
+                break;
             default:
-            {
-                assert(0);
+                throw std::runtime_error("Unknown format in input assember at line " + ToString(__LINE__));
             }
-            } //end switch
 
-            mPoints = ProcessPixels(mPixels, desc.ipd);
-        }
+            desc.source->convertTo(mMatF, CV_32FC3, alpha);
+            //Convert to appropriate colour space:
+            switch(desc.targetColourspace)
+            {
+            case InputAssemblerDescriptor::ETCS_RGB:
+                break;
+            case InputAssemblerDescriptor::ETCS_HSV:
+                cv::cvtColor(mMatF, mMatF, CV_RGB2HSV);
 
-        const std::vector<PixelRGB8>& InputAssembler::pixels() const
-        {
-            return mPixels;
+                //Normalise hue:
+                for(int y = 0; y < mMatF.cols; ++y)
+                    for(int x = 0; x < mMatF.rows; ++x)
+                    {
+                        cv::Point3f& p = mMatF.at<cv::Point3f>(x,y);
+                        p.x/=360.f;
+                    }
+                break;
+            }
+
+            mPoints = ProcessPoints(mMatF, desc.ipd);
         }
 
         const std::vector<alg::Point>& InputAssembler::points() const

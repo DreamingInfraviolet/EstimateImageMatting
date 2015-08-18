@@ -22,7 +22,7 @@ namespace anima
                   */
                 virtual std::vector<Point> segment(const std::vector<Point>& points,
                                                    const Point reference,
-                                                   float approximateRadius) = 0;
+                                                   float approximateRadius) const = 0;
             };
         }
     }

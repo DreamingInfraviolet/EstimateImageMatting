@@ -1,11 +1,12 @@
 #include "inputprocessing.h"
 #include <vector>
 #include <set>
-#include "pixel.h"
 #include "cgal.h"
 #include <CGAL/remove_outliers.h>
 #include <CGAL/grid_simplify_point_set.h>
 #include <CGAL/random_simplify_point_set.h>
+#include "matrixd.h"
+#include "io.h"
 
 namespace anima
 {
@@ -13,32 +14,53 @@ namespace anima
     {
         namespace detail
         {
-            /** Finds list of unique pixels. */
-        std::set<PixelRGB8> RemoveDuplicatePixels(const std::vector<PixelRGB8>& pixels, int bitsToIgnore)
+
+
+        std::vector<alg::Point> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize)
         {
-            Inform("Removing duplicate pixels...");
+            Inform("Cleaning point data using 3D grid...");
 
-            PixelRGB8::comparisonBitsToIgnore(bitsToIgnore);
-            std::set<PixelRGB8> pixset (pixels.begin(), pixels.end());
+            const unsigned r = mat.rows, c = mat.cols;
 
-            Inform("" + ToString(pixset.size()/float(pixels.size())*100) +
-                   "% of pixels remain (" + ToString(pixset.size())+"/" + ToString(pixels.size())+")");
-            return pixset;
+            std::vector<alg::Point> points;
+            points.reserve(r*c/50);
+
+            const unsigned gridCubed = gridSize*gridSize*gridSize;
+            const unsigned gridSizeMinusOne = gridSize-1;
+
+            bool* grid = new(std::nothrow) bool[gridCubed]();
+            if(!grid)
+                throw std::runtime_error("Unable to allocate 3D grid for input processing");
+
+            for (unsigned i = 0; i < r; ++i)
+                for(unsigned j = 0; j < c; ++j)
+                {
+                    cv::Point3f p = mat.at<cv::Point3f>(i,j);
+                    cv::Point3i pi = p*(int)gridSize;
+                    if(unsigned(pi.x) >= gridSize)
+                        pi.x = gridSizeMinusOne;
+                    if(unsigned(pi.y) >= gridSize)
+                        pi.y = gridSizeMinusOne;
+                    if(unsigned(pi.z) >= gridSize)
+                        pi.z = gridSizeMinusOne;
+
+                    bool& b = grid[pi.x + gridSize*(pi.y + gridSize*pi.z)];
+                    if (!b)
+                    {
+                        b = true;
+                        points.push_back(alg::Point(p.x, p.y, p.z));
+                    }
+                }
+
+            Inform("" + ToString(points.size()/float(r*c)*100) + "% of points remain (" +
+                   ToString(points.size()) + "/" + ToString(r*c)+")");
+            delete [] grid;
+            return points;
         }
-
-            /** Converts pixels to points. */
-            std::vector<alg::Point> PixelsToPoints(const std::set<PixelRGB8> &pixels)
-            {
-                std::vector<alg::Point> points;
-                points.reserve(pixels.size());
-                for(auto px = pixels.begin(); px!=pixels.end(); ++px)
-                        points.push_back(alg::Point(px->rf(), px->gf(), px->bf()));
-                return points;
-            }
 
             void CleanPointData(std::vector<alg::Point>* points, InputProcessingDescriptor desc)
             {
-                Inform("Cleaning point data...");
+                Inform("Cleaning point data using CGAL...");
                 size_t initialSize = points->size();
 
                 #define CLEAN_OUTLIERS {if(desc.removeOutliers) \
@@ -102,21 +124,17 @@ namespace anima
             }
         }
 
-        std::vector<alg::Point> ProcessPixels(const std::vector<PixelRGB8>& pixels, InputProcessingDescriptor desc)
+        std::vector<alg::Point> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc)
         {
+            assert(mat.type() == CV_32FC3);
+
             if(!desc.validate())
                 throw std::runtime_error("Could not validate input processor.");
-            if(pixels.size()==0)
-                return std::vector<alg::Point>();
+            if(mat.rows*mat.cols==0 || mat.data==nullptr)
+                throw std::runtime_error("Invalid mat");
 
-            START_TIMER(t);
+            auto points = detail::RemoveDuplicatesWithGrid(mat, desc.gridSize);
 
-            auto pixelss = detail::RemoveDuplicatePixels(pixels, desc.comparisonBitsToIgnore);
-            END_TIMER(t);
-
-            std::vector<alg::Point> points = detail::PixelsToPoints(pixelss);
-
-            //std::vector<alg::Point> points = detail::PixelsToPoints(detail::RemoveDuplicatePixels(pixels, desc.comparisonBitsToIgnore));
             detail::CleanPointData(&points, desc);
             return points;
         }

@@ -2,12 +2,13 @@
 #include <vector>
 #include <cassert>
 #include <opencv2/opencv.hpp>
-#include <fittingalgorithmspolyhedron.h>
+#include <fittingalgorithms.h>
 #include "io.h"
 #include "coloursegmenters.h"
 #include "boundingpolyhedron.h"
 #include "cgal.h"
 #include "alphalocator.h"
+#include "algorithmprimatte.h"
 
 Application::Application() :
     mInputAssembler(nullptr),
@@ -24,10 +25,10 @@ void Application::init()
     try
     {
         using namespace anima::ia;
-        using namespace anima::af;
         using namespace anima::oa;
 
         Inform("Running");
+
         restoreStateFromFile();
 
         Inform("Processing input");
@@ -35,57 +36,50 @@ void Application::init()
         cv::Mat imageMat = InputAssembler::loadRgbMatFromFile("test.bmp");
 
         InputAssemblerDescriptor iaDesc;
-        iaDesc.inputSource = InputAssemblerDescriptor::EMEMORY;
-        iaDesc.inputSourceMemory.data = imageMat.data;
-        iaDesc.inputSourceMemory.dataSize = imageMat.rows*imageMat.cols*imageMat.channels();
-        iaDesc.inputSourceMemory.step = imageMat.channels();
-        iaDesc.inputSourceMemory.type = InputAssemblerDescriptor::EPIXEL_RGB8;
-        iaDesc.ipd.comparisonBitsToIgnore = 2;
+        iaDesc.source = &imageMat;
         iaDesc.ipd.order = InputProcessingDescriptor::ERandomOutliersGrid;
+        iaDesc.targetColourspace = InputAssemblerDescriptor::ETCS_RGB;
         iaDesc.ipd.removeOutliers = false;
         iaDesc.ipd.removeOutliersK = 3;
         iaDesc.ipd.gridSimplify = false;
         iaDesc.ipd.gridSimplifyEpsilon = 0.04;
         iaDesc.ipd.randomSimplify = true;
         iaDesc.ipd.randomSimplifyPercentage = 80.0;
+        iaDesc.ipd.gridSize = 64;
 
         mInputAssembler = new InputAssembler(iaDesc);
 
         Inform("Creating primatte algorithm");
-        anima::alg::primatte::TestVertexFitting fitter;
+        anima::alg::primatte::Test2Fitting fitter;
         anima::alg::primatte::DistanceColourSegmenter segmenter;
         anima::alg::primatte::AlphaDistanceLocator alphaLocator;
 
-        AlgorithmFactoryDescriptor afDesc;
-        afDesc.type = AlgorithmFactoryDescriptor::EPrimatte;
+        anima::alg::primatte::AlgorithmPrimatteDesc algDesc;
+        algDesc.boundingPolyhedronDesc.fitter = &fitter;
+        algDesc.boundingPolyhedronDesc.meshPath = "objects/sphere.obj";
+        algDesc.boundingPolyhedronDesc.scaleMultiplier = 1.1f;
+        algDesc.segmenter = &segmenter;
+        algDesc.backgroundPoint = anima::alg::Point(0,0,1);
+        algDesc.alphaLocator = &alphaLocator;
 
+        mAlgorithm = new anima::alg::primatte::AlgorithmPrimatte(algDesc);
 
-        afDesc.algPrimatteDesc.boundingPolyhedronDesc.fitter = &fitter;
-        afDesc.algPrimatteDesc.boundingPolyhedronDesc.meshPath = "objects/sphere.obj";
-        afDesc.algPrimatteDesc.boundingPolyhedronDesc.scaleMultiplier = 1.1f;
-        afDesc.algPrimatteDesc.segmenter = &segmenter;
-        afDesc.algPrimatteDesc.backgroundPoint = anima::alg::Point(0,0,1);
-        afDesc.algPrimatteDesc.input = mInputAssembler;
-        afDesc.algPrimatteDesc.alphaLocator = &alphaLocator;
+        mAlgorithm->setInput(mInputAssembler);
+        mAlgorithm->analyse();
 
-        AlgorithmFactory af;
-        mAlgorithm = af.produce(afDesc);
-        if(!mAlgorithm)
-            throw std::runtime_error("Could not create algorithm");
+//        Inform("Gathering results");
+//        //Set not to save result for now as it's not implemented.
+//        OutputAssemblerDescriptor oaDesc;
+//        oaDesc.algorithm = mAlgorithm;
+//        oaDesc.imageSource = &imageMat;
+//        oaDesc.generateFile = false;
+//        oaDesc.showPreview = false;
+//        oaDesc.memoryOptions.destinationImage = nullptr;
+//        oaDesc.memoryOptions.destinationRaw = nullptr;
+//        oaDesc.memoryOptions.destinationRawSize = 0;
 
-        Inform("Gathering results");
-        //Set not to save result for now as it's not implemented.
-        OutputAssemblerDescriptor oaDesc;
-        oaDesc.algorithm = mAlgorithm;
-        oaDesc.imageSource = &imageMat;
-        oaDesc.generateFile = false;
-        oaDesc.showPreview = false;
-        oaDesc.memoryOptions.destinationImage = nullptr;
-        oaDesc.memoryOptions.destinationRaw = nullptr;
-        oaDesc.memoryOptions.destinationRawSize = 0;
-
-        OutputAssembler oa;
-        oa.assemble(oaDesc);
+//        OutputAssembler oa;
+//        oa.assemble(oaDesc);
 
         //Prepare drawing
         glClearColor(0.9,0.9,0.9,1);

@@ -65,13 +65,13 @@ namespace anima
                 /** Draws a preview of the polyhedron with the given colour.
                   * @param colour A colour with components in the range [0,255]
                   */
-                void debugDraw(math::vec3i colour);
+                void debugDraw(math::vec3i colour) const;
 
                 /** Returns the initial radius of the sphere. */
-                Real initialRadius();
+                Real initialRadius() const;
 
                 /** Returns the initial centre of the sphere. */
-                Point centre() { return mCentre; }
+                Point centre() const { return mCentre; }
             };
         }
     }

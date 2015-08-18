@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "cgal.h"
+#include "inputassembler.h"
 
 namespace anima
 {
@@ -13,6 +14,7 @@ namespace anima
         protected:
             /* Must be set by prepare() when prepared. */
             bool mPrepared;
+            const ia::InputAssembler* mInput;
         public:
 
             /** Trivial constructor. */
@@ -21,22 +23,28 @@ namespace anima
             /** Trivial virtual destructor */
             virtual ~IAlgorithm(){}
 
+            /** Sets the current input. */
+            virtual void setInput(const ia::InputAssembler* input)
+            {
+                mInput = input;
+            }
+
             /** Prepares alpha computation for the given data set. Needed for debug draw.
               * Example activity might be collapsing polyhedrons around the input points.
                 Must set mPrepared=when done. */
-            virtual void prepare() = 0;
+            virtual void analyse() = 0;
 
             /** Computes the alpha for the given set of points.*/
-            virtual std::vector<float> computeAlphas(const std::vector<Point>& input) = 0;
+            virtual std::vector<float> computeAlphas(const std::vector<Point>& input) const = 0;
 
             /** Indicates whether prepare() has been called. */
-            virtual bool prepared()
+            virtual bool prepared() const
             {
                 return mPrepared;
             }
 
             /** Draws a 3D representation of the algorithm. */
-            virtual void debugDraw() = 0;
+            virtual void debugDraw() const = 0;
         };
     }
 }

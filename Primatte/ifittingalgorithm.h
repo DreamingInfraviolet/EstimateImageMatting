@@ -22,7 +22,7 @@ namespace anima
                   * @param centre The centre towards which the polyhedron vertices should be moved.
                   * @param points The points around which to fit.
                   */
-                virtual void fit(Polyhedron& poly, const Point centre, const std::vector<Point>& points) = 0;
+                virtual void fit(Polyhedron& poly, const Point centre, const std::vector<Point>& points) const = 0;
             };
         }
     }

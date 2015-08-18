@@ -8,7 +8,7 @@ namespace anima
         {
              std::vector<Point> DistanceColourSegmenter::segment(const std::vector<Point> &points,
                                                                  const Point reference,
-                                                                 float approximateRadius)
+                                                                 float approximateRadius) const
             {
                 std::vector<Point> out;
 

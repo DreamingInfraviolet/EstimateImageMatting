@@ -2,7 +2,6 @@
 #include <QGLViewer/qglviewer.h>
 #include <memory>
 #include "inputassembler.h"
-#include "algorithmfactory.h"
 #include "outputassembler.h"
 
 /** The main application class. It is to be replaced in the future by a proper

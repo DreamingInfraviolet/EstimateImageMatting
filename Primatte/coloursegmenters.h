@@ -16,7 +16,7 @@ namespace anima
             public:
                 virtual std::vector<Point> segment(const std::vector<Point>& points,
                                                    const Point reference,
-                                                   float approximateRadius);
+                                                   float approximateRadius) const;
             };
         }
     }

@@ -30,37 +30,34 @@ SOURCES += main.cpp \
     matrixd.cpp \
     drawhelpers.cpp \
     boundingpolyhedron.cpp \
-    pixel.cpp \
     util.cpp \
     coloursegmenters.cpp \
-    algorithmfactory.cpp \
     inputassembler.cpp \
     algorithmprimatte.cpp \
     outputassembler.cpp \
     alphalocator.cpp \
-    inputprocessing.cpp
+    inputprocessing.cpp \
+    fittingalgorithms.cpp
 
 HEADERS  += \
     cgal.h \
     polyhedronloader.h \
     io.h \
-    pixel.h \
     application.h \
     matrixd.h \
     drawhelpers.h \
     boundingpolyhedron.h \
     icoloursegmenter.h \
-    fittingalgorithmspolyhedron.h \
     ifittingalgorithm.h \
     util.h \
     coloursegmenters.h \
-    algorithmfactory.h \
     inputassembler.h \
     IAlgorithm.h \
     algorithmprimatte.h \
     outputassembler.h \
     ialphalocator.h \
     alphalocator.h \
-    inputprocessing.h
+    inputprocessing.h \
+    fittingalgorithms.h
 
 
