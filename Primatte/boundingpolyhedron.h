@@ -72,6 +72,8 @@ namespace anima
 
                 /** Returns the initial centre of the sphere. */
                 Point centre() const { return mCentre; }
+
+                const Polyhedron& polyhedron() const { return mPoly; }
             };
         }
     }

@@ -48,13 +48,22 @@ namespace anima
             }
 
             desc.source->convertTo(mMatF, CV_32FC3, alpha);
-            //Convert to appropriate colour space:
+
+            //Put background pixel into mat for conversion
+            cv::Mat backgroundPxMat(1,1,CV_32FC3);
+            backgroundPxMat.at<cv::Point3f>(0,0) =
+                    cv::Point3f(desc.backgroundPoint.x(),
+                                desc.backgroundPoint.y(),
+                                desc.backgroundPoint.z());
+
+            //Convert to appropriate colour space (including background pixel):
             switch(desc.targetColourspace)
             {
             case InputAssemblerDescriptor::ETCS_RGB:
                 break;
             case InputAssemblerDescriptor::ETCS_HSV:
                 cv::cvtColor(mMatF, mMatF, CV_RGB2HSV);
+                cv::cvtColor(backgroundPxMat, backgroundPxMat, CV_RGB2HSV);
 
                 //Normalise hue:
                 for(int y = 0; y < mMatF.cols; ++y)
@@ -63,8 +72,13 @@ namespace anima
                         cv::Point3f& p = mMatF.at<cv::Point3f>(x,y);
                         p.x/=360.f;
                     }
+                backgroundPxMat.at<cv::Point3f>(0,0).x/=360.f;
                 break;
             }
+
+            //restore background pixel from mat in new colourspace
+            cv::Point3f cvbgpx = backgroundPxMat.at<cv::Point3f>(0,0);
+            mBackground = alg::Point(cvbgpx.x,cvbgpx.y,cvbgpx.z);
 
             mPoints = ProcessPoints(mMatF, desc.ipd);
         }
@@ -72,6 +86,16 @@ namespace anima
         const std::vector<alg::Point>& InputAssembler::points() const
         {
             return mPoints;
+        }
+
+        const cv::Mat& InputAssembler::mat() const
+        {
+            return mMatF;
+        }
+
+        alg::Point InputAssembler::background() const
+        {
+            return mBackground;
         }
     }
 }

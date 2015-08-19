@@ -58,7 +58,7 @@ namespace anima
 
                 /** Computes the alphas for the given set of points in relation to the
                   * previously supplied inputs. */
-                virtual std::vector<float> computeAlphas(const std::vector<Point>& input) const;
+                virtual cv::Mat computeAlphas() const;
 
                 /** Uses old gl to draw a representation of the internal polyhedrons. */
                 virtual void debugDraw() const;

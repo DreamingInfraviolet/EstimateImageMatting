@@ -34,7 +34,6 @@ SOURCES += main.cpp \
     coloursegmenters.cpp \
     inputassembler.cpp \
     algorithmprimatte.cpp \
-    outputassembler.cpp \
     alphalocator.cpp \
     inputprocessing.cpp \
     fittingalgorithms.cpp
@@ -54,7 +53,6 @@ HEADERS  += \
     inputassembler.h \
     IAlgorithm.h \
     algorithmprimatte.h \
-    outputassembler.h \
     ialphalocator.h \
     alphalocator.h \
     inputprocessing.h \

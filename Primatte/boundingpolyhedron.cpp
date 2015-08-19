@@ -55,6 +55,11 @@ namespace anima
                             p.z()*multiplier+bounding->center().z()
                         );
                 }
+
+//                //Vertify that each face is a triangle
+//                for(auto it = mPoly.facets_begin(); it!=mPoly.facets_end(); ++it)
+//                    if(!it->is_triangle())
+//                        throw std::runtime_error("Polyhedron has non-triangular faces.");
             }
 
             Real BoundingPolyhedron::initialRadius() const

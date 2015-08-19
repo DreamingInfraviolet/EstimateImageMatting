@@ -33,19 +33,20 @@ namespace anima
                 mPolys[POLY_OUTER].positionAround(mInput->points());
                 mPolys[POLY_OUTER].fit(mInput->points(), mPolys[POLY_OUTER].centre());
 
-                auto middlePoints = mDesc.segmenter->segment(mInput->points(), mDesc.backgroundPoint, 0.4f);
+                auto middlePoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.35f);
                 mPolys[POLY_MIDDLE].positionAround(middlePoints);
-                mPolys[POLY_MIDDLE].fit(middlePoints, mDesc.backgroundPoint);
+                mPolys[POLY_MIDDLE].fit(middlePoints, mInput->background());
 
-                auto innerPoints = mDesc.segmenter->segment(mInput->points(), mDesc.backgroundPoint, 0.2f);
+                auto innerPoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.2f);
                 mPolys[POLY_INNER].positionAround(innerPoints);
-                mPolys[POLY_INNER].fit(innerPoints, mDesc.backgroundPoint);
+                mPolys[POLY_INNER].fit(innerPoints, mInput->background());
+
             }
 
             /** Computes the alpha for the given set of points. */
-            std::vector<float> AlgorithmPrimatte::computeAlphas(const std::vector<Point>& input) const
+            cv::Mat AlgorithmPrimatte::computeAlphas() const
             {
-                return mDesc.alphaLocator->findAlphas(mPolys, POLY_COUNT, input, mDesc.backgroundPoint);
+                return mDesc.alphaLocator->findAlphas(mPolys, POLY_COUNT, mInput->mat(), mInput->background());
             }
 
             void AlgorithmPrimatte::debugDraw() const

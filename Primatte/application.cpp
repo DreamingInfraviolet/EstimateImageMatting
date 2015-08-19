@@ -25,7 +25,6 @@ void Application::init()
     try
     {
         using namespace anima::ia;
-        using namespace anima::oa;
 
         Inform("Running");
 
@@ -38,48 +37,42 @@ void Application::init()
         InputAssemblerDescriptor iaDesc;
         iaDesc.source = &imageMat;
         iaDesc.ipd.order = InputProcessingDescriptor::ERandomOutliersGrid;
-        iaDesc.targetColourspace = InputAssemblerDescriptor::ETCS_RGB;
+        iaDesc.targetColourspace = InputAssemblerDescriptor::ETCS_HSV;
         iaDesc.ipd.removeOutliers = false;
         iaDesc.ipd.removeOutliersK = 3;
         iaDesc.ipd.gridSimplify = false;
         iaDesc.ipd.gridSimplifyEpsilon = 0.04;
-        iaDesc.ipd.randomSimplify = true;
+        iaDesc.ipd.randomSimplify = false;
         iaDesc.ipd.randomSimplifyPercentage = 80.0;
-        iaDesc.ipd.gridSize = 64;
+        iaDesc.ipd.gridSize = 255;
+        iaDesc.backgroundPoint = anima::alg::Point(42/255.f,130/255.f,93/255.f);
 
         mInputAssembler = new InputAssembler(iaDesc);
 
         Inform("Creating primatte algorithm");
-        anima::alg::primatte::Test2Fitting fitter;
+        anima::alg::primatte::TestVertexFitting fitter;
         anima::alg::primatte::DistanceColourSegmenter segmenter;
-        anima::alg::primatte::AlphaDistanceLocator alphaLocator;
+        anima::alg::primatte::AlphaRayLocator alphaLocator;
 
         anima::alg::primatte::AlgorithmPrimatteDesc algDesc;
         algDesc.boundingPolyhedronDesc.fitter = &fitter;
         algDesc.boundingPolyhedronDesc.meshPath = "objects/sphere.obj";
         algDesc.boundingPolyhedronDesc.scaleMultiplier = 1.1f;
         algDesc.segmenter = &segmenter;
-        algDesc.backgroundPoint = anima::alg::Point(0,0,1);
         algDesc.alphaLocator = &alphaLocator;
 
         mAlgorithm = new anima::alg::primatte::AlgorithmPrimatte(algDesc);
 
+        Inform("Analysing input");
         mAlgorithm->setInput(mInputAssembler);
         mAlgorithm->analyse();
 
-//        Inform("Gathering results");
-//        //Set not to save result for now as it's not implemented.
-//        OutputAssemblerDescriptor oaDesc;
-//        oaDesc.algorithm = mAlgorithm;
-//        oaDesc.imageSource = &imageMat;
-//        oaDesc.generateFile = false;
-//        oaDesc.showPreview = false;
-//        oaDesc.memoryOptions.destinationImage = nullptr;
-//        oaDesc.memoryOptions.destinationRaw = nullptr;
-//        oaDesc.memoryOptions.destinationRawSize = 0;
+        Inform("Applying results");
+        auto result = mAlgorithm->computeAlphas();
 
-//        OutputAssembler oa;
-//        oa.assemble(oaDesc);
+        cv::cvtColor(result, result, CV_GRAY2RGB);
+        cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );// Create a window for display.
+        cv::imshow( "Display window", result );
 
         //Prepare drawing
         glClearColor(0.9,0.9,0.9,1);
@@ -97,21 +90,36 @@ void Application::init()
     }
 }
 
+void glColor3fSRGB(float x, float y, float z)
+{
+    glColor3f(pow(x,2.2f),pow(y,2.2f),pow(z,2.2f));
+}
+
 void Application::draw()
 {
   drawBackground();
 
   //Draw points
   glPointSize(5.0);
-  glLineWidth(3);
+  glLineWidth(2);
   glBegin(GL_POINTS);
   for(auto it = mInputAssembler->points().begin(); it!=mInputAssembler->points().end(); ++it)
   {
-      glColor3f(it->x(), it->y(), it->z());
+      glColor3fSRGB(it->x(), it->y(), it->z());
       glVertex3f(it->x(), it->y(), it->z());
   }
-  glColor4f(0,0,0,1);
   glEnd();
+
+  //Draw reference point
+  if(mInputAssembler)
+  {
+      glColor3fSRGB(1,0,0);
+      glPointSize(10.0);
+      glBegin(GL_POINTS);
+      auto b = mInputAssembler->background();
+      glVertex3f(b.x(),b.y(),b.z());
+      glEnd();
+  }
 
   //Draw algorithm
   glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
@@ -135,11 +143,11 @@ void Application::drawBackground()
     //Draw
     glBegin(GL_QUADS);
     //c1
-    glColor3f(c1r,c1g,c1b);
+    glColor3fSRGB(c1r,c1g,c1b);
     glVertex2f(1.0, 1.0);
     glVertex2f(-1.0,1.0);
     //c2
-    glColor3f(c2r,c2g,c2b);
+    glColor3fSRGB(c2r,c2g,c2b);
     glVertex2f(-1.0,-1.0);
     glVertex2f(1.0, -1.0);
     glEnd();

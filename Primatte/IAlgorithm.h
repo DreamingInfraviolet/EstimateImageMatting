@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <opencv2/opencv.hpp>
 #include "cgal.h"
 #include "inputassembler.h"
 
@@ -34,8 +35,8 @@ namespace anima
                 Must set mPrepared=when done. */
             virtual void analyse() = 0;
 
-            /** Computes the alpha for the given set of points.*/
-            virtual std::vector<float> computeAlphas(const std::vector<Point>& input) const = 0;
+            /** Computes the alpha for the internal input.*/
+            virtual cv::Mat computeAlphas() const = 0;
 
             /** Indicates whether prepare() has been called. */
             virtual bool prepared() const

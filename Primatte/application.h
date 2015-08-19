@@ -2,7 +2,8 @@
 #include <QGLViewer/qglviewer.h>
 #include <memory>
 #include "inputassembler.h"
-#include "outputassembler.h"
+
+namespace anima { namespace alg { class IAlgorithm; } }
 
 /** The main application class. It is to be replaced in the future by a proper
   * driver. */
