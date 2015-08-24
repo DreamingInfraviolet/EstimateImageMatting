@@ -31,13 +31,13 @@ namespace anima
             void AlgorithmPrimatte::analyse()
             {
                 mPolys[POLY_OUTER].positionAround(mInput->points());
-                mPolys[POLY_OUTER].fit(mInput->points(), mPolys[POLY_OUTER].centre());
+                mPolys[POLY_OUTER].fit(mInput->points(), mInput->background());
 
-                auto middlePoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.35f);
+                auto middlePoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.7f);
                 mPolys[POLY_MIDDLE].positionAround(middlePoints);
                 mPolys[POLY_MIDDLE].fit(middlePoints, mInput->background());
 
-                auto innerPoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.2f);
+                auto innerPoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.4f);
                 mPolys[POLY_INNER].positionAround(innerPoints);
                 mPolys[POLY_INNER].fit(innerPoints, mInput->background());
 
@@ -46,7 +46,7 @@ namespace anima
             /** Computes the alpha for the given set of points. */
             cv::Mat AlgorithmPrimatte::computeAlphas() const
             {
-                return mDesc.alphaLocator->findAlphas(mPolys, POLY_COUNT, mInput->mat(), mInput->background());
+                return mDesc.alphaLocator->findAlphas(mPolys, POLY_COUNT, *mInput);
             }
 
             void AlgorithmPrimatte::debugDraw() const

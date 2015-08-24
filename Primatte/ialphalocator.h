@@ -3,6 +3,7 @@
 #include "cgal.h"
 #include <vector>
 #include <opencv2/opencv.hpp>
+#include "inputassembler.h"
 /**
   * Given n polyhedrons, a reference centre point and a list of points,
   * return a vector of alphas corresponding to the list of points
@@ -22,14 +23,12 @@ namespace anima
                   * @param polyhedrons The polyhedrons usd by primatte
                                        ordered from inner to outer.
                   * @param polyhedronCount The number of polyhedrons.
-                  * @param matIn The mat for which alpha must be generated.
-                  * @param reference The background colour point.
+                  * @param input The initialised input structure.
                   */
                 virtual cv::Mat findAlphas(
                         const BoundingPolyhedron* polyhedrons,
                         const size_t polyhedronCount,
-                        const cv::Mat& matIn,
-                        const Point reference) const = 0;
+                        const ia::InputAssembler &input) const = 0;
             };
         }
     }

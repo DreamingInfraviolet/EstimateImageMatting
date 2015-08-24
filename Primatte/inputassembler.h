@@ -42,10 +42,15 @@ namespace anima
             cv::Mat mMatF;
             std::vector<alg::Point> mPoints;
             alg::Point mBackground;
+            bool* mGrid; //A 3D grid
+            size_t mGridSize;
+            InputAssemblerDescriptor::TargetColourspace mColourSpace;
         public:
 
             /** Initialises the input, throwing an exception if failed. */
             InputAssembler(InputAssemblerDescriptor& desc);
+
+            ~InputAssembler();
 
             /** Returns the internal points. */
             const std::vector<alg::Point>& points() const;
@@ -56,6 +61,34 @@ namespace anima
             /** Returns the background point in the correct colour space. */
             alg::Point background() const;
 
+            const bool* grid() const {return mGrid;}
+
+            size_t gridSize() const { return mGridSize; }
+
+            //Converts from internal colour space to rgb
+            cv::Point3f debugGetPointColour(alg::Point p) const
+            {
+                switch(mColourSpace)
+                {
+                case InputAssemblerDescriptor::ETCS_RGB:
+                    return cv::Point3f(p.x(),p.y(),p.z());
+                    break;
+                case InputAssemblerDescriptor::ETCS_HSV:
+                {
+                    float f[3];
+                    f[0] = p.x()*360.f;
+                    f[1] = p.y();
+                    f[2] = p.z();
+                    cv::Mat mat(1,1,CV_32FC3, &f);
+                    cv::cvtColor(mat, mat, CV_HSV2RGB);
+                    return cv::Point3f(f[0],f[1],f[2]);
+                }
+                    break;
+                default:
+                    assert(0);
+                }
+            }
+
             /** Loads a cv::Mat from an image file in rgb format. */
             static cv::Mat loadMatFromFile(const char *path);
 
@@ -65,6 +98,7 @@ namespace anima
 
             /** Helper function */
             static cv::Mat loadRgbMatFromFile(const char* path);
+
         };
 
 

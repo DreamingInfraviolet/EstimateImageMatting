@@ -8,6 +8,11 @@ namespace anima
     namespace ia
     {
 
+        InputAssembler::~InputAssembler()
+        {
+            delete[] mGrid;
+        }
+
         cv::Mat InputAssembler::loadRgbMatFromFile(const char* path)
         {
             cv::Mat mat;
@@ -25,9 +30,9 @@ namespace anima
         }
 
         InputAssembler::InputAssembler(InputAssemblerDescriptor& desc)
+            : mGrid(nullptr)
         {
             //Convert the input into 3 component float mat.
-
             if(desc.source == nullptr)
                 throw std::runtime_error("Null source mat");
 
@@ -50,13 +55,15 @@ namespace anima
             desc.source->convertTo(mMatF, CV_32FC3, alpha);
 
             //Put background pixel into mat for conversion
-            cv::Mat backgroundPxMat(1,1,CV_32FC3);
-            backgroundPxMat.at<cv::Point3f>(0,0) =
-                    cv::Point3f(desc.backgroundPoint.x(),
-                                desc.backgroundPoint.y(),
-                                desc.backgroundPoint.z());
+            float f[3];
+            f[0] = desc.backgroundPoint.x();
+            f[1] = desc.backgroundPoint.y();
+            f[2] = desc.backgroundPoint.z();
+            cv::Mat backgroundPxMat(1,1,CV_32FC3, f);
 
             //Convert to appropriate colour space (including background pixel):
+            mColourSpace = desc.targetColourspace;
+
             switch(desc.targetColourspace)
             {
             case InputAssemblerDescriptor::ETCS_RGB:
@@ -80,7 +87,10 @@ namespace anima
             cv::Point3f cvbgpx = backgroundPxMat.at<cv::Point3f>(0,0);
             mBackground = alg::Point(cvbgpx.x,cvbgpx.y,cvbgpx.z);
 
-            mPoints = ProcessPoints(mMatF, desc.ipd);
+            auto result = ProcessPoints(mMatF, desc.ipd);
+            mPoints = result.first;
+            mGrid = result.second;
+            mGridSize = desc.ipd.gridSize;
         }
 
         const std::vector<alg::Point>& InputAssembler::points() const

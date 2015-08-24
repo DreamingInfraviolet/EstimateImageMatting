@@ -1,0 +1,241 @@
+#include "spherepolyhedron.h"
+#include "math.h"
+#include <stdexcept>
+#include <assert.h>
+#include "io.h"
+#include "application.h"
+
+const float PI = acos(-1);
+const float PI2 = PI*2;
+const float PIo2 = PI/2;
+
+//Phi = around up axis slices.
+//Theta = up/down spices.
+
+//Should replace sin/cos/tan with lookup tables with precision n.
+
+math::vec2 SpherePolyhedron::cartesianToSpherical(const math::vec3& cartesian)
+{
+    return math::vec2(atan2(cartesian.x, cartesian.y), asin(cartesian.z));
+}
+
+math::vec3 SpherePolyhedron::sphericalToCartesian(const math::vec2& spherical)
+{
+    const float sinPhi = sin(spherical.x);
+    const float cosPhi = cos(spherical.x);
+    const float sinTheta = sin(spherical.y);
+    const float cosTheta = cos(spherical.y);
+
+    return math::vec3(sinPhi*cosTheta, cosTheta*cosPhi, sinTheta);
+}
+
+math::vec3 SpherePolyhedron::getPointAtIndex(int phi, int theta)
+{
+    return mVertices[phi*mVerticesThetaCount+theta];
+}
+
+float SpherePolyhedron::findDistanceToPolyhedron(const math::vec3& normalisedVector)
+{
+    //Draw line preview
+    glBegin(GL_LINES);
+    glColor3f(1,0,0);
+    glVertex3f(mCentre.x,mCentre.y,mCentre.z);
+    glVertex3f(mCentre.x+normalisedVector.x,mCentre.y+
+               normalisedVector.y,mCentre.z+
+               normalisedVector.z);
+    glEnd();
+
+    //Get spherical coordinates of vector
+    math::vec2 spherical = cartesianToSpherical(normalisedVector);
+
+    //As the phi component can be negative, move it into the [0,2 Pi] range.
+    spherical.x = fmod(spherical.x+PI2, PI2);
+
+    //Get theta into into the [0, PI] range
+    float thetaWithOffset = spherical.y + PIo2;
+
+    //Vertices to be found:
+    math::vec3 v1, v2, v3;
+
+    //If pointing near the poles
+    const float piMinusThetaAngle = PI-mThetaAngle;
+
+    if(thetaWithOffset < mThetaAngle || thetaWithOffset > piMinusThetaAngle)
+    {
+        const int phiIndexi = (int) (spherical.x/mPhiAngle);
+
+        //If north
+        if(thetaWithOffset > piMinusThetaAngle)
+        {
+            v1 = getPointAtIndex(phiIndexi, mVerticesThetaCount-1);
+            v2 = getPointAtIndex((phiIndexi+1) % mVerticesPhiCount,  mVerticesThetaCount-1);
+            v3 = mVertices[mVertices.size()-2];
+        }
+        else //if south
+        {
+            v1 = getPointAtIndex(phiIndexi, 0);
+            v2 = getPointAtIndex((phiIndexi+1) % mVerticesPhiCount, 0);
+            v3 = mVertices[mVertices.size()-1];
+        }
+    }
+    else //If pointing at a normal quad
+    {
+        //Account for cutting off the bottom and top triangles
+        thetaWithOffset *= (mThetaFaces)/(mThetaFaces-2);
+
+        //Get a quad index from the spherical coordinates.
+        const math::vec2f indexf(spherical.x/mPhiAngle, thetaWithOffset/mThetaAngle);
+        const math::vec2i indexi(indexf.x, indexf.y);
+
+        //Get vertices common to both triangles
+        v1 = getPointAtIndex((indexi.x+1) % mVerticesPhiCount, indexi.y);
+        v2 = getPointAtIndex(indexi.x, (indexi.y + mVerticesThetaCount-1) % mVerticesThetaCount);
+
+        //Upper triangle
+        if((indexf.y-indexi.y) / mPhiAngle > (indexf.x-indexi.x) / mPhiAngle)
+            v3 = getPointAtIndex(indexi.x, indexi.y);
+        //Lower triange
+        else
+            v3 = getPointAtIndex((indexi.x+1) % mVerticesPhiCount, (indexi.y + mVerticesThetaCount-1) % mVerticesThetaCount);
+    }
+
+    //v1,v2,v3 are now filled out.
+    float distance = findDistanceToKnownTriangle(v1, math::cross(v2-v1,v3-v1), normalisedVector);
+
+    math::vec3 pointOfContact = mCentre + normalisedVector*distance;
+    glPointSize(10.f);
+    glBegin(GL_POINTS);
+    glVertex3f(pointOfContact.x,pointOfContact.y,pointOfContact.z);
+    glEnd();
+
+    return distance;
+}
+
+float SpherePolyhedron::findDistanceToKnownTriangle(const math::vec3& pointOnTriangle,
+                                  const math::vec3& normal,
+                                  const math::vec3& v)
+{
+    float vn = math::dot(v, normal);
+    assert(vn!=0);
+    return math::dot(pointOnTriangle-mCentre, normal)/vn;
+}
+
+void SpherePolyhedron::constructMesh()
+{
+    using namespace math;
+
+    //Unique vertices
+    mVerticesPhiCount = mPhiFaces;
+    mVerticesThetaCount = mThetaFaces - 1;
+
+    for(int iPhi = 0; iPhi < mPhiFaces; ++iPhi)
+        for(int iTheta = 1; iTheta < mVerticesThetaCount+1; ++iTheta)
+        {
+            math::vec2 point = vec2(iPhi*mPhiAngle, iTheta*mThetaAngle-PIo2);
+            mVertices.push_back(sphericalToCartesian(point)*mRadius+mCentre);
+        }
+
+    //Add in poles
+    //North
+    mVertices.push_back(math::vec3(0,0,1)*mRadius+mCentre);
+    //South
+    mVertices.push_back(math::vec3(0,0,-1)*mRadius+mCentre);
+
+}
+
+void SpherePolyhedron::debugDraw()
+{
+//    glBegin(GL_POINTS);
+//    for(int i = 0; i < mVertices.size(); ++i)
+//        glVertex3f(mVertices[i].x,mVertices[i].y,mVertices[i].z);
+//    glEnd();
+
+    //Iterating over vertices looks like
+//    for(int iPhi = 0; iPhi < mPhiFaces; ++iPhi)
+//        for(int iTheta = 0; iTheta < mThetaFaces-1; ++iTheta)
+
+    //Iterate over the quads
+    glColor3f(0,0,0);
+    glPointSize(5.f);
+    for(int iPhi = 0; iPhi < mVerticesPhiCount; ++iPhi)
+        for(int iTheta = 0; iTheta < mVerticesThetaCount-1; ++iTheta)
+        {
+            //Get points
+            glBegin(GL_POINTS);
+            auto v1 = getPointAtIndex(iPhi, iTheta);
+            auto v2 = getPointAtIndex(iPhi, iTheta+1);
+            auto v3 = getPointAtIndex(((iPhi+1) % mVerticesPhiCount), iTheta+1);
+            auto v4 = getPointAtIndex(((iPhi+1) % mVerticesPhiCount), iTheta);
+
+            //Draw points
+            glVertex3f(v1.x,v1.y,v1.z);
+            glVertex3f(v2.x,v2.y,v2.z);
+            glVertex3f(v3.x,v3.y,v3.z);
+            glVertex3f(v4.x,v4.y,v4.z);
+            glEnd();
+
+            //Draw triangles
+            glBegin(GL_LINES);
+            glVertex3f(v1.x,v1.y,v1.z);
+            glVertex3f(v3.x,v3.y,v3.z);
+            glVertex3f(v1.x,v1.y,v1.z);
+            glVertex3f(v2.x,v2.y,v2.z);
+            glVertex3f(v2.x,v2.y,v2.z);
+            glVertex3f(v3.x,v3.y,v3.z);
+            glVertex3f(v4.x,v4.y,v4.z);
+            glVertex3f(v1.x,v1.y,v1.z);
+            glEnd();
+        }
+
+    //Draw poles
+    math::vec3 north = mVertices[mVertices.size()-2];
+    math::vec3 south = mVertices[mVertices.size()-1];
+    glBegin(GL_POINTS);
+    glVertex3f(north.x,north.y,north.z);
+    glVertex3f(south.x,south.y,south.z);
+    glEnd();
+
+    //Draw pole triangles
+    glBegin(GL_LINES);
+    for(int iPhi = 0; iPhi < mPhiFaces; ++iPhi)
+    {
+        auto edgePointTop1 = getPointAtIndex(iPhi, mVerticesThetaCount-1);
+        auto edgePointTop2 = getPointAtIndex((iPhi+1) % (mVerticesPhiCount), mVerticesThetaCount-1);
+        glVertex3f(north.x,north.y,north.z);
+        glVertex3f(edgePointTop1.x,edgePointTop1.y,edgePointTop1.z);
+        glVertex3f(north.x,north.y,north.z);
+        glVertex3f(edgePointTop2.x,edgePointTop2.y,edgePointTop2.z);
+        glVertex3f(edgePointTop1.x,edgePointTop1.y,edgePointTop1.z);
+        glVertex3f(edgePointTop2.x,edgePointTop2.y,edgePointTop2.z);
+    }
+    for(int iPhi = 0; iPhi < mPhiFaces; ++iPhi)
+    {
+        auto edgePointTop1 = getPointAtIndex(iPhi, 0);
+        auto edgePointTop2 = getPointAtIndex((iPhi+1) % (mVerticesPhiCount), 0);
+        glVertex3f(south.x,south.y,south.z);
+        glVertex3f(edgePointTop1.x,edgePointTop1.y,edgePointTop1.z);
+        glVertex3f(south.x,south.y,south.z);
+        glVertex3f(edgePointTop2.x,edgePointTop2.y,edgePointTop2.z);
+        glVertex3f(edgePointTop1.x,edgePointTop1.y,edgePointTop1.z);
+        glVertex3f(edgePointTop2.x,edgePointTop2.y,edgePointTop2.z);
+    }
+    glEnd();
+}
+
+SpherePolyhedron::SpherePolyhedron() {}
+
+SpherePolyhedron::SpherePolyhedron(unsigned phiFaces, unsigned thetaFaces, math::vec3 centre, float radius)
+    : mPhiFaces(phiFaces), mThetaFaces(thetaFaces), mCentre(centre), mRadius(radius),
+      mPhiAngle(PI2/phiFaces), mThetaAngle(PI/thetaFaces)
+{
+    constructMesh();
+    debugDraw();
+}
+
+float SpherePolyhedron::findIntersection(const math::vec3 normalisedVector)
+{
+    if(mVertices.size()==0)
+        throw std::runtime_error("Attempting to find ray/triangle intersection with uninitialised polyhedron.");
+    return findDistanceToPolyhedron(normalisedVector);
+}
+

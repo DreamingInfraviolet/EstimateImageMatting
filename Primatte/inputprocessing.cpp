@@ -7,7 +7,6 @@
 #include <CGAL/random_simplify_point_set.h>
 #include "matrixd.h"
 #include "io.h"
-
 namespace anima
 {
     namespace ia
@@ -16,7 +15,7 @@ namespace anima
         {
 
 
-        std::vector<alg::Point> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize)
+        std::pair<std::vector<alg::Point>, bool*> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize)
         {
             Inform("Cleaning point data using 3D grid...");
 
@@ -29,6 +28,7 @@ namespace anima
             const unsigned gridSizeMinusOne = gridSize-1;
 
             bool* grid = new(std::nothrow) bool[gridCubed]();
+
             if(!grid)
                 throw std::runtime_error("Unable to allocate 3D grid for input processing");
 
@@ -54,8 +54,8 @@ namespace anima
 
             Inform("" + ToString(points.size()/float(r*c)*100) + "% of points remain (" +
                    ToString(points.size()) + "/" + ToString(r*c)+")");
-            delete [] grid;
-            return points;
+
+            return std::make_pair(points,grid);
         }
 
             void CleanPointData(std::vector<alg::Point>* points, InputProcessingDescriptor desc)
@@ -64,18 +64,18 @@ namespace anima
                 size_t initialSize = points->size();
 
                 #define CLEAN_OUTLIERS {if(desc.removeOutliers) \
-                                        { \
+                { Inform("Removing outliers");\
                                             points->erase(CGAL::remove_outliers \
                                                           (points->begin(), points->end(),desc.removeOutliersK, \
                                                            desc.removeOutliersPercentage), \
                                                 points->end());}}
                 #define CLEAN_GRID {if(desc.gridSimplify) \
-                                    { \
+        { Inform("Grid simplifying"); \
                                         points->erase(CGAL::grid_simplify_point_set \
                                                       (points->begin(), points->end(), desc.gridSimplifyEpsilon), \
                                             points->end());}}
                 #define CLEAN_RANDOM {if(desc.randomSimplify) \
-                                      { \
+                                    { Inform("Random simplifying"); \
                                           points->erase(CGAL::random_simplify_point_set \
                                                         (points->begin(),points->end(), \
                                               desc.randomSimplifyPercentage), points->end());}}
@@ -124,7 +124,7 @@ namespace anima
             }
         }
 
-        std::vector<alg::Point> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc)
+        std::pair<std::vector<alg::Point>, bool*> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc)
         {
             assert(mat.type() == CV_32FC3);
 
@@ -133,10 +133,10 @@ namespace anima
             if(mat.rows*mat.cols==0 || mat.data==nullptr)
                 throw std::runtime_error("Invalid mat");
 
-            auto points = detail::RemoveDuplicatesWithGrid(mat, desc.gridSize);
+            auto pointsAndGrid = detail::RemoveDuplicatesWithGrid(mat, desc.gridSize);
 
-            detail::CleanPointData(&points, desc);
-            return points;
+            detail::CleanPointData(&pointsAndGrid.first, desc);
+            return pointsAndGrid;
         }
     }
 }

@@ -20,6 +20,9 @@ namespace anima
 
                 /* The fitting algorithm to use to fit the polyhedron around the points. */
                 IFittingAlgorithm* fitter;
+
+                /* The desired centre of the polyhedron. */
+                Point centre;
             };
 
             class BoundingPolyhedron
@@ -27,9 +30,6 @@ namespace anima
             private:
                 /* The internal polyhedron object. */
                 Polyhedron mPoly;
-
-                /* The initial centre of the polyhedron. */
-                Point mCentre;
 
                 /* The initial radius of the polyhedron. */
                 Real mInitialRadius;
@@ -71,7 +71,7 @@ namespace anima
                 Real initialRadius() const;
 
                 /** Returns the initial centre of the sphere. */
-                Point centre() const { return mCentre; }
+                Point centre() const { return mDesc.centre; }
 
                 const Polyhedron& polyhedron() const { return mPoly; }
             };

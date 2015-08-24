@@ -2,6 +2,7 @@
 #include <QGLViewer/qglviewer.h>
 #include <memory>
 #include "inputassembler.h"
+#include <qtimer.h>
 
 namespace anima { namespace alg { class IAlgorithm; } }
 
@@ -33,4 +34,11 @@ public:
 
     /* The currently used algorithm. */
     anima::alg::IAlgorithm* mAlgorithm;
+
+    //Handles the frame timing
+    QBasicTimer mBasicTimer;
+
+
+    /** Called on every timer tick: updates the frame. */
+    void timerEvent(QTimerEvent *event);
 };

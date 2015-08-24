@@ -59,20 +59,19 @@ namespace anima
             }
         };
 
-        /** Takes in a vector of points and a descriptor and returns the cleaned up corresponding normalised points. */
-        std::vector<alg::Point> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc);
+        /** Takes in a vector of points and a descriptor and returns the cleaned up corresponding normalised points. #
+          * also returns a pointer to the 3d grid. Memory management up to the user.*/
+        std::pair<std::vector<alg::Point>, bool*> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc);
 
         namespace detail
         {
             /** Constructs a 3D grid of booleans to ensure that only one point is kept per box.
               * Memory consumption = sizeof(bool)*gridSize*gridSize*gridSize. Fairly fast.
-              * Also converts to a vector of points.
-              */
-            std::vector<alg::Point> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize);
+              * Also converts to a vector of points* also returns a pointer to the 3d grid. Memory management up to the user.*/
+            std::pair<std::vector<alg::Point>, bool*> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize);
 
             /** Cleans up the point data accoring to the descriptor using CGAL. */
             void CleanPointData(std::vector<alg::Point>* points, InputProcessingDescriptor desc);
         }
     }
 }
-

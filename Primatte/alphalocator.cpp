@@ -3,23 +3,12 @@
 #include "cgal.h"
 #include "matrixd.h"
 
-#include <CGAL/AABB_tree.h>
-#include <CGAL/AABB_traits.h>
-#include <CGAL/AABB_triangle_primitive.h>
 
+#include "geomhelper.h"
 #include <fstream>
 
 using namespace anima::alg;
 
-typedef Kernel::FT FT;
-typedef Kernel::Ray_3 Ray;
-typedef Kernel::Line_3 Line;
-typedef Kernel::Triangle_3 Triangle;
-typedef std::vector<Triangle>::iterator Iterator;
-typedef CGAL::AABB_triangle_primitive<Kernel, Iterator> Primitive;
-typedef CGAL::AABB_traits<Kernel, Primitive> AABB_triangle_traits;
-typedef CGAL::AABB_tree<AABB_triangle_traits> Tree;
-typedef boost::optional< Tree::Object_and_primitive_id> TreeIntersection;
 
 
 namespace anima
@@ -53,7 +42,6 @@ namespace anima
                 out.intersects = (bool)intersectionOp;
 
                 math::vec3 vstart(start.x(), start.y(), start.z());
-                math::vec3 vend(end.x(), end.y(), end.z());
 
                 //Check if really intersects
                 if(out.intersects)
@@ -77,8 +65,7 @@ namespace anima
         cv::Mat AlphaRayLocator::findAlphas(
                 const BoundingPolyhedron* polyhedrons,
                 const size_t polyhedronCount,
-                const cv::Mat& matIn,
-                const Point reference) const
+                const ia::InputAssembler& input) const
         {
             assert(polyhedronCount==3);
             START_TIMER(t);
@@ -89,33 +76,19 @@ namespace anima
                 //Probably sort by distance to background
                 //Use the (hopefully) 3 intersection points to interpolate.
 
-                const unsigned r = matIn.rows, c = matIn.cols;
+                const unsigned r = input.mat().rows, c = input.mat().cols;
+                const Point reference = input.background();
 
                 cv::Mat out;
                 out.create(r, c, CV_32FC1);
 
                 //Find poly trees
+
                 Tree* tree[3];
-
                 for(int i = 0; i < 3; ++i)
-                {
-                    std::vector<Triangle> triangles;
-                    alg::Point points[3];
-                    for ( auto f = polyhedrons[i].polyhedron().facets_begin(); f != polyhedrons[i].polyhedron().facets_end(); ++f)
-                    {
-                            alg::Polyhedron::Halfedge_around_facet_const_circulator j= f->facet_begin();
-                            int i = 0;
-                            do
-                            {
-                                points[i++] = j->vertex()->point();
-                            } while(++j != f->facet_begin());
-                            triangles.push_back(Triangle(points[0],points[1],points[2]));
-                    }
+                    tree[i] = FindTreeFromPolyhedron(polyhedrons[i].polyhedron());
 
-                    tree[i] = new Tree(triangles.begin(), triangles.end());
-                }
-
-                math::vec3 vreference(reference.x(),reference.y(),reference.z());
+                const math::vec3 vreference(reference.x(),reference.y(),reference.z());
 
 
                 //For each point, send rays
@@ -123,11 +96,11 @@ namespace anima
                 {
                     for(unsigned j = 0; j < c; ++j)
                     {
-                        cv::Point3f p = matIn.at<cv::Point3f>(i,j);
+                        const cv::Point3f p = input.mat().at<cv::Point3f>(i,j);
                         float alpha;
 
 
-                        Point point(p.x,p.y,p.z);
+                        const Point point(p.x,p.y,p.z);
 
                         //If right in the middle
                         if(reference==point)
@@ -137,13 +110,13 @@ namespace anima
                         else
                         {
                             //Send ray to middle
-                            float startEndLength = math::vec3(p.x, p.y, p.z).distance(vreference);
-                            InterData middleInter = InterData::findIntersection(reference, point, startEndLength, tree[1]);
+                            const float startEndLength = math::vec3(p.x, p.y, p.z).distance(vreference);
+                            const InterData middleInter = InterData::findIntersection(reference, point, startEndLength, tree[1]);
 
                             if(!middleInter.intersects)
                             {
                                 //If no intersection with middle, try inner:
-                                InterData innerInter = InterData::findIntersection(reference, point,startEndLength, tree[0]);
+                                const InterData innerInter = InterData::findIntersection(reference, point,startEndLength, tree[0]);
                                 if(!innerInter.intersects)
                                 {
                                     //If no inner intersection, totally inside.
@@ -176,40 +149,40 @@ namespace anima
             }
 
         //////////////////////////////////////////////////////////////
-        cv::Mat AlphaDistanceLocator::findAlphas(
-                const BoundingPolyhedron* polyhedrons,
-                const size_t polyhedronCount,
-                const cv::Mat& matIn,
-                const Point reference) const
-            {
-                const unsigned r = matIn.rows, c = matIn.cols;
+//        cv::Mat AlphaDistanceLocator::findAlphas(
+//                const BoundingPolyhedron* polyhedrons,
+//                const size_t polyhedronCount,
+//                const cv::Mat& matIn,
+//                const Point reference) const
+//            {
+//                const unsigned r = matIn.rows, c = matIn.cols;
 
-                cv::Mat out;
-                out.create(r, c, CV_32FC1);
+//                cv::Mat out;
+//                out.create(r, c, CV_32FC1);
 
-                for (unsigned i = 0; i < r; ++i)
-                {
-                    for(unsigned j = 0; j < c; ++j)
-                    {
-                        cv::Point3f p = matIn.at<cv::Point3f>(i,j);
-                        float alpha;
+//                for (unsigned i = 0; i < r; ++i)
+//                {
+//                    for(unsigned j = 0; j < c; ++j)
+//                    {
+//                        cv::Point3f p = matIn.at<cv::Point3f>(i,j);
+//                        float alpha;
 
-                        //Distance based alpha:
-                        const float distanceFullAlpha = 0.4f, distanceNoAlpha = 0.2f;
-                        float a = p.x - reference.x();
-                        float b = p.y - reference.y();
-                        float c = p.z - reference.z();
-                        float distance = sqrt(a*a+b*b+c*c);
+//                        //Distance based alpha:
+//                        const float distanceFullAlpha = 0.4f, distanceNoAlpha = 0.2f;
+//                        float a = p.x - reference.x();
+//                        float b = p.y - reference.y();
+//                        float c = p.z - reference.z();
+//                        float distance = sqrt(a*a+b*b+c*c);
 
-                        alpha = (distance - distanceNoAlpha) / (distanceFullAlpha - distanceNoAlpha);
-                        alpha = alpha<0 ? 0:alpha;
-                        alpha = alpha>1 ? 1:alpha;
+//                        alpha = (distance - distanceNoAlpha) / (distanceFullAlpha - distanceNoAlpha);
+//                        alpha = alpha<0 ? 0:alpha;
+//                        alpha = alpha>1 ? 1:alpha;
 
-                        out.at<float>(i,j) = alpha;
-                    }
-                }
-                return out;
-            }
+//                        out.at<float>(i,j) = alpha;
+//                    }
+//                }
+//                return out;
+//            }
         }
     }
 }

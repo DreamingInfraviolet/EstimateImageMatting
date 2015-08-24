@@ -39,8 +39,9 @@ namespace anima
                 if(!bounding.get())
                     throw std::runtime_error("Could not find bounding sphere.");
 
-                mCentre = bounding->center();
-                mInitialRadius = sqrt(bounding->squared_radius());
+                mInitialRadius = sqrt(bounding->squared_radius()) +
+                        math::vec3(mDesc.centre.x(), mDesc.centre.y(), mDesc.centre.z()).distance(
+                            math::vec3(bounding->center().x(), bounding->center().y(), bounding->center().z()));
 
                 Real multiplier = mInitialRadius*2*mDesc.scaleMultiplier;
 
@@ -50,9 +51,9 @@ namespace anima
                     Point& p = it->point();
                     p = Point
                         (
-                            p.x()*multiplier+bounding->center().x(),
-                            p.y()*multiplier+bounding->center().y(),
-                            p.z()*multiplier+bounding->center().z()
+                            p.x()*multiplier+mDesc.centre.x(),
+                            p.y()*multiplier+mDesc.centre.y(),
+                            p.z()*multiplier+mDesc.centre.z()
                         );
                 }
 

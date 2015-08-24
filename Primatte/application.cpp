@@ -9,6 +9,7 @@
 #include "cgal.h"
 #include "alphalocator.h"
 #include "algorithmprimatte.h"
+#include "spherepolyhedron.h"
 
 Application::Application() :
     mInputAssembler(nullptr),
@@ -19,6 +20,12 @@ Application::~Application()
     delete mAlgorithm;
     delete mInputAssembler;
 }
+
+void Application::timerEvent(QTimerEvent *event)
+{
+    update();
+}
+
 
 void Application::init()
 {
@@ -34,23 +41,25 @@ void Application::init()
 
         cv::Mat imageMat = InputAssembler::loadRgbMatFromFile("test.bmp");
 
+        anima::alg::Point background = anima::alg::Point(12/255.f,246/255.f,0/255.f);
+
         InputAssemblerDescriptor iaDesc;
         iaDesc.source = &imageMat;
         iaDesc.ipd.order = InputProcessingDescriptor::ERandomOutliersGrid;
         iaDesc.targetColourspace = InputAssemblerDescriptor::ETCS_HSV;
         iaDesc.ipd.removeOutliers = false;
-        iaDesc.ipd.removeOutliersK = 3;
+        iaDesc.ipd.removeOutliersK = 24;
         iaDesc.ipd.gridSimplify = false;
         iaDesc.ipd.gridSimplifyEpsilon = 0.04;
-        iaDesc.ipd.randomSimplify = false;
-        iaDesc.ipd.randomSimplifyPercentage = 80.0;
-        iaDesc.ipd.gridSize = 255;
-        iaDesc.backgroundPoint = anima::alg::Point(42/255.f,130/255.f,93/255.f);
+        iaDesc.ipd.randomSimplify = true;
+        iaDesc.ipd.randomSimplifyPercentage = 50.0;
+        iaDesc.ipd.gridSize = 100;
+        iaDesc.backgroundPoint = background;
 
         mInputAssembler = new InputAssembler(iaDesc);
 
         Inform("Creating primatte algorithm");
-        anima::alg::primatte::TestVertexFitting fitter;
+        anima::alg::primatte::NoFitting fitter;
         anima::alg::primatte::DistanceColourSegmenter segmenter;
         anima::alg::primatte::AlphaRayLocator alphaLocator;
 
@@ -58,6 +67,7 @@ void Application::init()
         algDesc.boundingPolyhedronDesc.fitter = &fitter;
         algDesc.boundingPolyhedronDesc.meshPath = "objects/sphere.obj";
         algDesc.boundingPolyhedronDesc.scaleMultiplier = 1.1f;
+        algDesc.boundingPolyhedronDesc.centre = mInputAssembler->background();
         algDesc.segmenter = &segmenter;
         algDesc.alphaLocator = &alphaLocator;
 
@@ -70,13 +80,27 @@ void Application::init()
         Inform("Applying results");
         auto result = mAlgorithm->computeAlphas();
 
-        cv::cvtColor(result, result, CV_GRAY2RGB);
-        cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );// Create a window for display.
-        cv::imshow( "Display window", result );
+//        cv::namedWindow( "Alpha", cv::WINDOW_AUTOSIZE );// Create a window for display.
+//        cv::imshow( "Alpha", result );
 
-        //Prepare drawing
+//        cv::Mat af = imageMat;
+
+//        for(int r = 0; r < af.rows; ++r)
+//            for(int c = 0; c < af.cols; ++c)
+//            {
+//                cv::Vec3b& v = af.at<cv::Vec3b>(r,c);
+//                v *= result.at<float>(r,c);
+//            }
+
+//        cv::namedWindow( "AF", cv::WINDOW_AUTOSIZE );// Create a window for display.
+//        cv::imshow( "AF", af );
+
+//        //Prepare drawing
         glClearColor(0.9,0.9,0.9,1);
         glDisable(GL_LIGHTING);
+
+        //Set fps (update every n milliseconds)
+            mBasicTimer.start(30, this);
     }
     catch(std::runtime_error err)
     {
@@ -105,12 +129,13 @@ void Application::draw()
   glBegin(GL_POINTS);
   for(auto it = mInputAssembler->points().begin(); it!=mInputAssembler->points().end(); ++it)
   {
-      glColor3fSRGB(it->x(), it->y(), it->z());
+      auto c = mInputAssembler->debugGetPointColour(*it);
+      glColor3fSRGB(c.x,c.y,c.z);
       glVertex3f(it->x(), it->y(), it->z());
   }
   glEnd();
 
-  //Draw reference point
+  //Draw background point
   if(mInputAssembler)
   {
       glColor3fSRGB(1,0,0);
@@ -123,8 +148,21 @@ void Application::draw()
 
   //Draw algorithm
   glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-  mAlgorithm->debugDraw();
+  if(mAlgorithm)
+      mAlgorithm->debugDraw();
   glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+
+  //Draw debug sphere
+  glPointSize(5.0);
+
+  SpherePolyhedron sp(16,8,math::vec3(0,1,0),0.8);
+
+  static float phi=0,theta=-2;
+  phi = phi + 0.002f;
+  theta = theta + 0.003f;
+
+  sp.findDistanceToPolyhedron(
+              SpherePolyhedron::sphericalToCartesian(math::vec2(theta,phi)));
 }
 
 void Application::drawBackground()

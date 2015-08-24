@@ -36,7 +36,8 @@ SOURCES += main.cpp \
     algorithmprimatte.cpp \
     alphalocator.cpp \
     inputprocessing.cpp \
-    fittingalgorithms.cpp
+    fittingalgorithms.cpp \
+    spherepolyhedron.cpp
 
 HEADERS  += \
     cgal.h \
@@ -56,6 +57,8 @@ HEADERS  += \
     ialphalocator.h \
     alphalocator.h \
     inputprocessing.h \
-    fittingalgorithms.h
+    fittingalgorithms.h \
+    geomhelper.h \
+    spherepolyhedron.h
 
 

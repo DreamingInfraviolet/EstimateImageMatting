@@ -28,6 +28,15 @@ namespace anima
                              const Point centre,
                              const std::vector<Point>& points) const;
         }; //End of class
+
+        /** Does nothing */
+        class NoFitting : public IFittingAlgorithm
+        {
+        public:
+            virtual void fit(Polyhedron& poly,
+                             const Point centre,
+                             const std::vector<Point>& points) const;
+        }; //End of class
         }
     }
 }
