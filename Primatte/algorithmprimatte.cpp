@@ -3,6 +3,7 @@
 #include "icoloursegmenter.h"
 #include "ifittingalgorithm.h"
 #include "inputassembler.h"
+#include <stdexcept>
 
 namespace anima
 {
@@ -31,16 +32,15 @@ namespace anima
             void AlgorithmPrimatte::analyse()
             {
                 mPolys[POLY_OUTER].positionAround(mInput->points());
-                mPolys[POLY_OUTER].fit(mInput->points(), mInput->background());
+                //mPolys[POLY_OUTER].fit(mInput->points(), mInput->background());
 
-                auto middlePoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.7f);
+                auto middlePoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.3f);
                 mPolys[POLY_MIDDLE].positionAround(middlePoints);
-                mPolys[POLY_MIDDLE].fit(middlePoints, mInput->background());
+                //mPolys[POLY_MIDDLE].fit(middlePoints, mInput->background());
 
-                auto innerPoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.4f);
+                auto innerPoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.1f);
                 mPolys[POLY_INNER].positionAround(innerPoints);
                 mPolys[POLY_INNER].fit(innerPoints, mInput->background());
-
             }
 
             /** Computes the alpha for the given set of points. */
@@ -51,9 +51,9 @@ namespace anima
 
             void AlgorithmPrimatte::debugDraw() const
             {
-                mPolys[POLY_OUTER].debugDraw(math::vec3i(0,0,0));
-                mPolys[POLY_MIDDLE].debugDraw(math::vec3i(0,255,0));
-                mPolys[POLY_INNER].debugDraw(math::vec3i(255,0,0));
+                mPolys[POLY_OUTER].debugDraw(math::vec3(0,0,0));
+                mPolys[POLY_MIDDLE].debugDraw(math::vec3(0,1,0));
+                mPolys[POLY_INNER].debugDraw(math::vec3(1,0,0));
             }
         }
     }

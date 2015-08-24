@@ -1,6 +1,7 @@
 #pragma once
 #include "IAlgorithm.h"
 #include "boundingpolyhedron.h"
+#include "matrixd.h"
 
 
 /** This class implements an algorithm inspired by primatte. */
@@ -32,7 +33,7 @@ namespace anima
                 BoundingPolyhedronDescriptor boundingPolyhedronDesc;
 
                 /* The point to represent the background image colour. */
-                Point backgroundPoint;
+                math::vec3 backgroundPoint;
             };
 
             /** The primatte-inspired algorithm. */

@@ -2,6 +2,7 @@
 #include "matrixd.h"
 #include "io.h"
 #include <set>
+#include <stdexcept>
 
 namespace anima
 {
@@ -55,11 +56,8 @@ namespace anima
             desc.source->convertTo(mMatF, CV_32FC3, alpha);
 
             //Put background pixel into mat for conversion
-            float f[3];
-            f[0] = desc.backgroundPoint.x();
-            f[1] = desc.backgroundPoint.y();
-            f[2] = desc.backgroundPoint.z();
-            cv::Mat backgroundPxMat(1,1,CV_32FC3, f);
+            mBackground = desc.backgroundPoint;
+            cv::Mat backgroundPxMat(1,1,CV_32FC3, &mBackground);
 
             //Convert to appropriate colour space (including background pixel):
             mColourSpace = desc.targetColourspace;
@@ -81,11 +79,21 @@ namespace anima
                     }
                 backgroundPxMat.at<cv::Point3f>(0,0).x/=360.f;
                 break;
-            }
+            case InputAssemblerDescriptor::ETCS_LAB:
+                cv::cvtColor(mMatF, mMatF, CV_RGB2Lab);
+                cv::cvtColor(backgroundPxMat, backgroundPxMat, CV_RGB2Lab);
+                for(int y = 0; y < mMatF.cols; ++y)
+                    for(int x = 0; x < mMatF.rows; ++x)
+                    {
+                        cv::Point3f& p = mMatF.at<cv::Point3f>(x,y);
+                        p = cv::Point3f(p.x/100.f, (p.y+127.f)/254.f, (p.z+127.f)/254.f);
+                    }
 
-            //restore background pixel from mat in new colourspace
-            cv::Point3f cvbgpx = backgroundPxMat.at<cv::Point3f>(0,0);
-            mBackground = alg::Point(cvbgpx.x,cvbgpx.y,cvbgpx.z);
+                mBackground = (math::vec3(mBackground.x/100.f,
+                                          (mBackground.y+127.f)/254.f,
+                                          (mBackground.z+127.f)/254.f));
+                break;
+            }
 
             auto result = ProcessPoints(mMatF, desc.ipd);
             mPoints = result.first;
@@ -93,7 +101,37 @@ namespace anima
             mGridSize = desc.ipd.gridSize;
         }
 
-        const std::vector<alg::Point>& InputAssembler::points() const
+        cv::Point3f InputAssembler::debugGetPointColour(math::vec3 p) const
+        {
+            switch(mColourSpace)
+            {
+            case InputAssemblerDescriptor::ETCS_RGB:
+                break;
+            case InputAssemblerDescriptor::ETCS_HSV:
+            {
+                p.x *= 360.f;
+                cv::Mat mat(1,1,CV_32FC3, &p.x);
+                cv::cvtColor(mat, mat, CV_HSV2RGB);
+            }
+                break;
+            case InputAssemblerDescriptor::ETCS_LAB:
+            {
+                p = math::vec3(p.x*100.f,
+                                p.y*254.f - 127.f,
+                                p.z*254.f - 127.f);
+
+                cv::Mat mat(1,1,CV_32FC3, &p.x);
+                cv::cvtColor(mat, mat, CV_Lab2RGB);
+            }
+                break;
+            default:
+                assert(0);
+            }
+
+            return cv::Point3f(p.x,p.y,p.z);
+        }
+
+        const std::vector<math::vec3> &InputAssembler::points() const
         {
             return mPoints;
         }
@@ -103,7 +141,7 @@ namespace anima
             return mMatF;
         }
 
-        alg::Point InputAssembler::background() const
+        math::vec3 InputAssembler::background() const
         {
             return mBackground;
         }

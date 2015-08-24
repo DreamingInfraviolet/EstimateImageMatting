@@ -1,5 +1,5 @@
 #pragma once
-#include "cgal.h"
+#include "matrixd.h"
 #include <vector>
 /**
   * Given a vector of points, this class must return a subset of those points.
@@ -20,8 +20,8 @@ namespace anima
                   * @param reference The point around which to find the subset.
                   * @param approximateRadius Loosely-defined cut-off point.
                   */
-                virtual std::vector<Point> segment(const std::vector<Point>& points,
-                                                   const Point reference,
+                virtual std::vector<math::vec3> segment(const std::vector<math::vec3>& points,
+                                                   const math::vec3 reference,
                                                    float approximateRadius) const = 0;
             };
         }

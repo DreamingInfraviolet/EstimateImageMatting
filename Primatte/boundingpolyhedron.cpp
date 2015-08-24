@@ -1,10 +1,9 @@
 #include "boundingpolyhedron.h"
-#include "polyhedronloader.h"
 #include "io.h"
 #include <memory>
 #include "stdlib.h"
 #include <algorithm>
-#include "drawhelpers.h"
+#include <stdexcept>
 
 namespace anima
 {
@@ -17,67 +16,63 @@ namespace anima
                 if(desc.fitter==nullptr)
                     throw std::runtime_error("Null fitter");
 
-                if(desc.meshPath == nullptr)
-                    throw std::runtime_error("Null mesh path");
-
                 mDesc = desc;
 
-                SMeshLib::IO::importOBJ(desc.meshPath, &mPoly);
+                mPoly = SpherePolyhedron(desc.phiFaces, desc.thetaFaces);
 
                 mInitialised = true;
             }
 
-            void BoundingPolyhedron::positionAround(const std::vector<Point>& points)
+            void BoundingPolyhedron::positionAround(const std::vector<math::vec3>& points)
             {
-                if(points.size()==0)
-                    return;
-
                 if(!mInitialised)
                     throw::std::runtime_error("Using uninitialised bounding polyhedron");
-                //Find bounding sphere
-                std::unique_ptr<Sphere> bounding (FindBoundingSphere(points, 0.01));
-                if(!bounding.get())
-                    throw std::runtime_error("Could not find bounding sphere.");
 
-                mInitialRadius = sqrt(bounding->squared_radius()) +
-                        math::vec3(mDesc.centre.x(), mDesc.centre.y(), mDesc.centre.z()).distance(
-                            math::vec3(bounding->center().x(), bounding->center().y(), bounding->center().z()));
+                float pointRadius = 1;
+                math::vec3 pointCentre;
 
-                Real multiplier = mInitialRadius*2*mDesc.scaleMultiplier;
-
-                //Scale and transform mesh vertices
-                for(auto it = mPoly.vertices_begin(); it!=mPoly.vertices_end(); ++it)
+                if(points.size()!=0)
                 {
-                    Point& p = it->point();
-                    p = Point
-                        (
-                            p.x()*multiplier+mDesc.centre.x(),
-                            p.y()*multiplier+mDesc.centre.y(),
-                            p.z()*multiplier+mDesc.centre.z()
-                        );
+                    //Find bounding sphere
+                    float minx = 1,miny = 1,minz = 1,maxx = 0,maxy = 0,maxz = 0;
+
+                    for(auto p = points.begin(); p!=points.end(); ++p)
+                    {
+                        minx = std::min(p->x, minx);
+                        miny = std::min(p->y, miny);
+                        minz = std::min(p->z, minz);
+                        maxx = std::max(p->x, maxx);
+                        maxy = std::max(p->y, maxy);
+                        maxz = std::max(p->z, maxz);
+                    }
+
+                    float dx = maxx-minx;
+                    float dy = maxy-miny;
+                    float dz = maxz-minz;
+
+                    pointRadius = std::max(dx, std::max(dy,dz)) / 2.f;
+                    pointCentre = math::vec3(maxx+minx,maxy+miny,maxz+minz) / 2.f;
                 }
 
-//                //Vertify that each face is a triangle
-//                for(auto it = mPoly.facets_begin(); it!=mPoly.facets_end(); ++it)
-//                    if(!it->is_triangle())
-//                        throw std::runtime_error("Polyhedron has non-triangular faces.");
+                mInitialRadius = (pointRadius + mDesc.centre.distance(pointCentre))*mDesc.scaleMultiplier;;
+                mPoly.setCentreAndRadius(mDesc.centre, mInitialRadius);
             }
 
-            Real BoundingPolyhedron::initialRadius() const
+            float BoundingPolyhedron::initialRadius() const
             {
                 if(!mInitialised)
                     throw::std::runtime_error("Using uninitialised bounding polyhedron");
                 return mInitialRadius;
             }
 
-            void BoundingPolyhedron::debugDraw(math::vec3i colour) const
+            void BoundingPolyhedron::debugDraw(math::vec3 colour) const
             {
                 if(!mInitialised)
                     throw::std::runtime_error("Using uninitialised bounding polyhedron");
-                DrawPolyhedron(mPoly, colour.x, colour.y, colour.z);
+                mPoly.debugDraw(colour);
             }
 
-            void BoundingPolyhedron::fit(const std::vector<Point> &points, Point centre)
+            void BoundingPolyhedron::fit(const std::vector<math::vec3> &points, math::vec3 centre)
             {
                 if(points.size()==0)
                     return;

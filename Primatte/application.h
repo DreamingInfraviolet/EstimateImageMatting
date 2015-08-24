@@ -3,7 +3,9 @@
 #include <memory>
 #include "inputassembler.h"
 #include <qtimer.h>
-
+#include "coloursegmenters.h"
+#include <fittingalgorithms.h>
+#include "alphalocator.h"
 namespace anima { namespace alg { class IAlgorithm; } }
 
 /** The main application class. It is to be replaced in the future by a proper
@@ -41,4 +43,8 @@ public:
 
     /** Called on every timer tick: updates the frame. */
     void timerEvent(QTimerEvent *event);
+
+    anima::alg::primatte::Test2Fitting fitter;
+    anima::alg::primatte::DistanceColourSegmenter segmenter;
+    anima::alg::primatte::AlphaRayLocator alphaLocator;
 };

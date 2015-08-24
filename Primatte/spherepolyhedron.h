@@ -1,11 +1,9 @@
 #pragma once
 #include "matrixd.h"
 #include <vector>
-
+#include <QGLViewer/qglviewer.h>
 
 //Should replace sin/cos/tan with lookup tables with precision n.
-#include "application.h"
-
 class SpherePolyhedron
 {
 public:
@@ -17,20 +15,12 @@ public:
     /** Done */
     static math::vec3 sphericalToCartesian(const math::vec2& spherical);
 
-    /** UNDONE */
-    float findDistanceToPolyhedron(const math::vec3& normalisedVector);
-
     /** Done */
-    //Assumes the ray passes through the triangle (important)
-    //Finds the distance to the triangle tri along the vector v from the centre.
-    float findDistanceToKnownTriangle(const math::vec3& pointOnTriangle,
-                                      const math::vec3& normal,
-                                      const math::vec3& v);
+    float findDistanceToPolyhedron(const math::vec3& normalisedVector) const;
 
     //indexed by [iPhi*(mThetaFaces-1)+ iTheta], where iPhi < mPhiFaces,
     //                                                 iTheta < mThetaFaces-1
     //The last two elements are the poles (north, south)
-    std::vector<math::vec3> mVertices;
     math::vec3 mCentre;
     unsigned mPhiFaces, mThetaFaces;
     float mPhiAngle, mThetaAngle;
@@ -40,19 +30,26 @@ public:
     void constructMesh();
 
     unsigned mVerticesPhiCount, mVerticesThetaCount;
-    math::vec3 getPointAtIndex(int phi, int theta);
+    math::vec3 getPointAtIndex(int phi, int theta) const;
+
+    bool mCentreAndRadiusChanged;
 
 public:
 
+    std::vector<math::vec3> mVertices;
 
-    void debugDraw();
+    void debugDraw(math::vec3 colour) const;
 
     SpherePolyhedron();
 
-    SpherePolyhedron(unsigned phiFaces, unsigned thetaFaces, math::vec3 centre, float radius);
+
+    SpherePolyhedron(unsigned phiFaces, unsigned thetaFaces);
     /**
       * @param normalisedVector The vector from the centre of the sphere that is to be tested.
       * @return The distance to the triangle from the centre in the direction of the vector.
       */
-    float findIntersection(const math::vec3 normalisedVector);
+    float findIntersection(const math::vec3 normalisedVector) const;
+
+    /** Can only be done once. */
+    void setCentreAndRadius(const math::vec3 centre, float radius);
 };

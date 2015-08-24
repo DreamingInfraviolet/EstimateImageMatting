@@ -1,27 +1,22 @@
 #include "inputprocessing.h"
 #include <vector>
 #include <set>
-#include "cgal.h"
-#include <CGAL/remove_outliers.h>
-#include <CGAL/grid_simplify_point_set.h>
-#include <CGAL/random_simplify_point_set.h>
+#include <stdexcept>
+#include <random>
+#include <functional>
 #include "matrixd.h"
 #include "io.h"
 namespace anima
 {
     namespace ia
     {
-        namespace detail
-        {
-
-
-        std::pair<std::vector<alg::Point>, bool*> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize)
+        std::pair<std::vector<math::vec3>, bool*> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize)
         {
             Inform("Cleaning point data using 3D grid...");
 
             const unsigned r = mat.rows, c = mat.cols;
 
-            std::vector<alg::Point> points;
+            std::vector<math::vec3> points;
             points.reserve(r*c/50);
 
             const unsigned gridCubed = gridSize*gridSize*gridSize;
@@ -48,83 +43,30 @@ namespace anima
                     if (!b)
                     {
                         b = true;
-                        points.push_back(alg::Point(p.x, p.y, p.z));
+                        points.push_back(math::vec3(p.x, p.y, p.z));
                     }
                 }
-
-            Inform("" + ToString(points.size()/float(r*c)*100) + "% of points remain (" +
-                   ToString(points.size()) + "/" + ToString(r*c)+")");
 
             return std::make_pair(points,grid);
         }
 
-            void CleanPointData(std::vector<alg::Point>* points, InputProcessingDescriptor desc)
-            {
-                Inform("Cleaning point data using CGAL...");
-                size_t initialSize = points->size();
+        void RandomSimplify(std::vector<math::vec3>* points, float percentageToRemove)
+        {
+            Inform("Removing points randomly...");
+            size_t initialSize = points->size();
 
-                #define CLEAN_OUTLIERS {if(desc.removeOutliers) \
-                { Inform("Removing outliers");\
-                                            points->erase(CGAL::remove_outliers \
-                                                          (points->begin(), points->end(),desc.removeOutliersK, \
-                                                           desc.removeOutliersPercentage), \
-                                                points->end());}}
-                #define CLEAN_GRID {if(desc.gridSimplify) \
-        { Inform("Grid simplifying"); \
-                                        points->erase(CGAL::grid_simplify_point_set \
-                                                      (points->begin(), points->end(), desc.gridSimplifyEpsilon), \
-                                            points->end());}}
-                #define CLEAN_RANDOM {if(desc.randomSimplify) \
-                                    { Inform("Random simplifying"); \
-                                          points->erase(CGAL::random_simplify_point_set \
-                                                        (points->begin(),points->end(), \
-                                              desc.randomSimplifyPercentage), points->end());}}
+            std::random_device rd;
+            std::mt19937 random(rd());
+            std::shuffle(points->begin(), points->end(), random);
 
-                switch(desc.order)
-                {
-                case InputProcessingDescriptor::EGridOutliersRandom:
-                    CLEAN_GRID;
-                    CLEAN_OUTLIERS;
-                    CLEAN_RANDOM;
-                    break;
-                case InputProcessingDescriptor::EGridRandomOutliers:
-                    CLEAN_GRID;
-                    CLEAN_RANDOM;
-                    CLEAN_OUTLIERS;
-                    break;
-                case InputProcessingDescriptor::EOutliersGridRandom:
-                    CLEAN_OUTLIERS;
-                    CLEAN_GRID;
-                    CLEAN_RANDOM;
-                    break;
-                case InputProcessingDescriptor::EOutliersRandomGrid:
-                    CLEAN_OUTLIERS;
-                    CLEAN_RANDOM;
-                    CLEAN_GRID;
-                    break;
-                case InputProcessingDescriptor::ERandomGridOutliers:
-                    CLEAN_RANDOM;
-                    CLEAN_GRID;
-                    CLEAN_OUTLIERS;
-                    break;
-                case InputProcessingDescriptor::ERandomOutliersGrid:
-                    CLEAN_RANDOM;
-                    CLEAN_OUTLIERS;
-                    CLEAN_GRID;
-                    break;
-                default:
-                    assert(0);
-                }
+            points->erase(points->begin()+(int)(points->size()*(1.f-percentageToRemove/100.f)), points->end());
 
-                Inform("" + ToString(points->size()/float(initialSize)*100) + "% of points remain (" +
-                       ToString(points->size()) + "/" + ToString(initialSize)+")");
-                #undef CLEAN_OUTLIERS
-                #undef CLEAN_GRID
-                #undef CLEAN_RANDOM
-            }
+            Inform("" + ToString(points->size()/float(initialSize)*100) + "% of points remain (" +
+                   ToString(points->size()) + "/" + ToString(initialSize)+")");
         }
 
-        std::pair<std::vector<alg::Point>, bool*> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc)
+
+        std::pair<std::vector<math::vec3>, bool*> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc)
         {
             assert(mat.type() == CV_32FC3);
 
@@ -133,9 +75,10 @@ namespace anima
             if(mat.rows*mat.cols==0 || mat.data==nullptr)
                 throw std::runtime_error("Invalid mat");
 
-            auto pointsAndGrid = detail::RemoveDuplicatesWithGrid(mat, desc.gridSize);
+            auto pointsAndGrid = RemoveDuplicatesWithGrid(mat, desc.gridSize);
 
-            detail::CleanPointData(&pointsAndGrid.first, desc);
+            if(desc.randomSimplify)
+                RandomSimplify(&pointsAndGrid.first, desc.randomSimplifyPercentage);
             return pointsAndGrid;
         }
     }

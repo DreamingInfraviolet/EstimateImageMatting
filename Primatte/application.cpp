@@ -2,14 +2,15 @@
 #include <vector>
 #include <cassert>
 #include <opencv2/opencv.hpp>
-#include <fittingalgorithms.h>
+
 #include "io.h"
-#include "coloursegmenters.h"
+
 #include "boundingpolyhedron.h"
-#include "cgal.h"
-#include "alphalocator.h"
+#include "matrixd.h"
+
 #include "algorithmprimatte.h"
 #include "spherepolyhedron.h"
+#include <stdexcept>
 
 Application::Application() :
     mInputAssembler(nullptr),
@@ -21,7 +22,7 @@ Application::~Application()
     delete mInputAssembler;
 }
 
-void Application::timerEvent(QTimerEvent *event)
+void Application::timerEvent(QTimerEvent*)
 {
     update();
 }
@@ -37,20 +38,17 @@ void Application::init()
 
         restoreStateFromFile();
 
+        this->setSceneRadius(1.5);
+
         Inform("Processing input");
 
         cv::Mat imageMat = InputAssembler::loadRgbMatFromFile("test.bmp");
 
-        anima::alg::Point background = anima::alg::Point(12/255.f,246/255.f,0/255.f);
+        math::vec3 background = math::vec3(78/255.f,94/255.f,239/255.f);
 
         InputAssemblerDescriptor iaDesc;
         iaDesc.source = &imageMat;
-        iaDesc.ipd.order = InputProcessingDescriptor::ERandomOutliersGrid;
-        iaDesc.targetColourspace = InputAssemblerDescriptor::ETCS_HSV;
-        iaDesc.ipd.removeOutliers = false;
-        iaDesc.ipd.removeOutliersK = 24;
-        iaDesc.ipd.gridSimplify = false;
-        iaDesc.ipd.gridSimplifyEpsilon = 0.04;
+        iaDesc.targetColourspace = InputAssemblerDescriptor::ETCS_LAB;
         iaDesc.ipd.randomSimplify = true;
         iaDesc.ipd.randomSimplifyPercentage = 50.0;
         iaDesc.ipd.gridSize = 100;
@@ -59,13 +57,12 @@ void Application::init()
         mInputAssembler = new InputAssembler(iaDesc);
 
         Inform("Creating primatte algorithm");
-        anima::alg::primatte::NoFitting fitter;
-        anima::alg::primatte::DistanceColourSegmenter segmenter;
-        anima::alg::primatte::AlphaRayLocator alphaLocator;
+
 
         anima::alg::primatte::AlgorithmPrimatteDesc algDesc;
         algDesc.boundingPolyhedronDesc.fitter = &fitter;
-        algDesc.boundingPolyhedronDesc.meshPath = "objects/sphere.obj";
+        algDesc.boundingPolyhedronDesc.phiFaces = 16;
+        algDesc.boundingPolyhedronDesc.thetaFaces = 8;
         algDesc.boundingPolyhedronDesc.scaleMultiplier = 1.1f;
         algDesc.boundingPolyhedronDesc.centre = mInputAssembler->background();
         algDesc.segmenter = &segmenter;
@@ -80,27 +77,32 @@ void Application::init()
         Inform("Applying results");
         auto result = mAlgorithm->computeAlphas();
 
-//        cv::namedWindow( "Alpha", cv::WINDOW_AUTOSIZE );// Create a window for display.
-//        cv::imshow( "Alpha", result );
 
-//        cv::Mat af = imageMat;
+        cv::namedWindow( "Alpha", cv::WINDOW_AUTOSIZE );// Create a window for display.
+        cv::imshow( "Alpha", result );
 
-//        for(int r = 0; r < af.rows; ++r)
-//            for(int c = 0; c < af.cols; ++c)
-//            {
-//                cv::Vec3b& v = af.at<cv::Vec3b>(r,c);
-//                v *= result.at<float>(r,c);
-//            }
+        cv::Mat af = imageMat;
 
-//        cv::namedWindow( "AF", cv::WINDOW_AUTOSIZE );// Create a window for display.
-//        cv::imshow( "AF", af );
+        //bgr format
+        cv::Vec3f backgroundBlendColour(0,255,0);
 
-//        //Prepare drawing
-        glClearColor(0.9,0.9,0.9,1);
+        for(int r = 0; r < af.rows; ++r)
+            for(int c = 0; c < af.cols; ++c)
+            {
+                cv::Vec3b& original = af.at<cv::Vec3b>(r,c);
+                float alpha = result.at<float>(r,c);
+                cv::Vec3f originalf = original;
+                cv::Vec3f result = originalf*alpha + backgroundBlendColour*(1.f-alpha);
+                original = result;
+            }
+
+        cv::namedWindow( "AF", cv::WINDOW_AUTOSIZE );// Create a window for display.
+        cv::imshow( "AF", af );
+
         glDisable(GL_LIGHTING);
 
-        //Set fps (update every n milliseconds)
-            mBasicTimer.start(30, this);
+        //Set fps (update every n milliseconds). 16.66... ~ 60fps
+        mBasicTimer.start(16.66666666, this);
     }
     catch(std::runtime_error err)
     {
@@ -131,9 +133,10 @@ void Application::draw()
   {
       auto c = mInputAssembler->debugGetPointColour(*it);
       glColor3fSRGB(c.x,c.y,c.z);
-      glVertex3f(it->x(), it->y(), it->z());
+      glVertex3f(it->x, it->y, it->z);
   }
   glEnd();
+
 
   //Draw background point
   if(mInputAssembler)
@@ -142,7 +145,7 @@ void Application::draw()
       glPointSize(10.0);
       glBegin(GL_POINTS);
       auto b = mInputAssembler->background();
-      glVertex3f(b.x(),b.y(),b.z());
+      glVertex3f(b.x,b.y,b.z);
       glEnd();
   }
 
@@ -154,15 +157,6 @@ void Application::draw()
 
   //Draw debug sphere
   glPointSize(5.0);
-
-  SpherePolyhedron sp(16,8,math::vec3(0,1,0),0.8);
-
-  static float phi=0,theta=-2;
-  phi = phi + 0.002f;
-  theta = theta + 0.003f;
-
-  sp.findDistanceToPolyhedron(
-              SpherePolyhedron::sphericalToCartesian(math::vec2(theta,phi)));
 }
 
 void Application::drawBackground()

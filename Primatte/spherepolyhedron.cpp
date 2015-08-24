@@ -14,6 +14,7 @@ const float PIo2 = PI/2;
 
 //Should replace sin/cos/tan with lookup tables with precision n.
 
+//Bottleneck
 math::vec2 SpherePolyhedron::cartesianToSpherical(const math::vec3& cartesian)
 {
     return math::vec2(atan2(cartesian.x, cartesian.y), asin(cartesian.z));
@@ -29,21 +30,13 @@ math::vec3 SpherePolyhedron::sphericalToCartesian(const math::vec2& spherical)
     return math::vec3(sinPhi*cosTheta, cosTheta*cosPhi, sinTheta);
 }
 
-math::vec3 SpherePolyhedron::getPointAtIndex(int phi, int theta)
+math::vec3 SpherePolyhedron::getPointAtIndex(int phi, int theta) const
 {
     return mVertices[phi*mVerticesThetaCount+theta];
 }
 
-float SpherePolyhedron::findDistanceToPolyhedron(const math::vec3& normalisedVector)
+float SpherePolyhedron::findDistanceToPolyhedron(const math::vec3& normalisedVector) const
 {
-    //Draw line preview
-    glBegin(GL_LINES);
-    glColor3f(1,0,0);
-    glVertex3f(mCentre.x,mCentre.y,mCentre.z);
-    glVertex3f(mCentre.x+normalisedVector.x,mCentre.y+
-               normalisedVector.y,mCentre.z+
-               normalisedVector.z);
-    glEnd();
 
     //Get spherical coordinates of vector
     math::vec2 spherical = cartesianToSpherical(normalisedVector);
@@ -100,24 +93,15 @@ float SpherePolyhedron::findDistanceToPolyhedron(const math::vec3& normalisedVec
     }
 
     //v1,v2,v3 are now filled out.
-    float distance = findDistanceToKnownTriangle(v1, math::cross(v2-v1,v3-v1), normalisedVector);
 
-    math::vec3 pointOfContact = mCentre + normalisedVector*distance;
-    glPointSize(10.f);
-    glBegin(GL_POINTS);
-    glVertex3f(pointOfContact.x,pointOfContact.y,pointOfContact.z);
-    glEnd();
+    //Find distance to triangle
+    math::vec3 normal = math::cross(v2-v1,v3-v1);
+    float vn = math::dot(normalisedVector, normal);
+    assert(vn!=0);
+
+    float distance = (math::dot(v1-mCentre, normal)/vn);
 
     return distance;
-}
-
-float SpherePolyhedron::findDistanceToKnownTriangle(const math::vec3& pointOnTriangle,
-                                  const math::vec3& normal,
-                                  const math::vec3& v)
-{
-    float vn = math::dot(v, normal);
-    assert(vn!=0);
-    return math::dot(pointOnTriangle-mCentre, normal)/vn;
 }
 
 void SpherePolyhedron::constructMesh()
@@ -130,32 +114,50 @@ void SpherePolyhedron::constructMesh()
 
     for(int iPhi = 0; iPhi < mPhiFaces; ++iPhi)
         for(int iTheta = 1; iTheta < mVerticesThetaCount+1; ++iTheta)
-        {
-            math::vec2 point = vec2(iPhi*mPhiAngle, iTheta*mThetaAngle-PIo2);
-            mVertices.push_back(sphericalToCartesian(point)*mRadius+mCentre);
-        }
+            mVertices.push_back(sphericalToCartesian(vec2(iPhi*mPhiAngle, iTheta*mThetaAngle-PIo2)));
 
     //Add in poles
     //North
-    mVertices.push_back(math::vec3(0,0,1)*mRadius+mCentre);
+    mVertices.push_back(math::vec3(0,0,1));
     //South
-    mVertices.push_back(math::vec3(0,0,-1)*mRadius+mCentre);
+    mVertices.push_back(math::vec3(0,0,-1));
 
 }
 
-void SpherePolyhedron::debugDraw()
+SpherePolyhedron::SpherePolyhedron() :mCentreAndRadiusChanged(false) {}
+
+SpherePolyhedron::SpherePolyhedron(unsigned phiFaces, unsigned thetaFaces)
+    : mPhiFaces(phiFaces), mThetaFaces(thetaFaces), mRadius(1),
+      mPhiAngle(PI2/phiFaces), mThetaAngle(PI/thetaFaces), mCentreAndRadiusChanged(false)
 {
-//    glBegin(GL_POINTS);
-//    for(int i = 0; i < mVertices.size(); ++i)
-//        glVertex3f(mVertices[i].x,mVertices[i].y,mVertices[i].z);
-//    glEnd();
+    assert(phiFaces > 3 && thetaFaces > 2);
+    constructMesh();
+}
 
-    //Iterating over vertices looks like
-//    for(int iPhi = 0; iPhi < mPhiFaces; ++iPhi)
-//        for(int iTheta = 0; iTheta < mThetaFaces-1; ++iTheta)
+float SpherePolyhedron::findIntersection(const math::vec3 normalisedVector) const
+{
+    if(mVertices.size()==0)
+        throw std::runtime_error("Attempting to find ray/triangle intersection with uninitialised polyhedron.");
+    return findDistanceToPolyhedron(normalisedVector);
+}
 
+void SpherePolyhedron::setCentreAndRadius(const math::vec3 centre, float radius)
+{
+    if(mCentreAndRadiusChanged)
+        Warning("Setting centre and radius a second time on sphere: transformation applied to non-unit starting mesh.");
+    mCentreAndRadiusChanged = true;
+
+    for(auto it = mVertices.begin(); it!=mVertices.end(); ++it)
+        *it = (*it)*radius + centre;
+
+    mRadius = radius;
+    mCentre = centre;
+}
+
+void SpherePolyhedron::debugDraw(math::vec3 colour) const
+{
     //Iterate over the quads
-    glColor3f(0,0,0);
+    glColor3f(colour.x,colour.y,colour.z);
     glPointSize(5.f);
     for(int iPhi = 0; iPhi < mVerticesPhiCount; ++iPhi)
         for(int iTheta = 0; iTheta < mVerticesThetaCount-1; ++iTheta)
@@ -221,21 +223,3 @@ void SpherePolyhedron::debugDraw()
     }
     glEnd();
 }
-
-SpherePolyhedron::SpherePolyhedron() {}
-
-SpherePolyhedron::SpherePolyhedron(unsigned phiFaces, unsigned thetaFaces, math::vec3 centre, float radius)
-    : mPhiFaces(phiFaces), mThetaFaces(thetaFaces), mCentre(centre), mRadius(radius),
-      mPhiAngle(PI2/phiFaces), mThetaAngle(PI/thetaFaces)
-{
-    constructMesh();
-    debugDraw();
-}
-
-float SpherePolyhedron::findIntersection(const math::vec3 normalisedVector)
-{
-    if(mVertices.size()==0)
-        throw std::runtime_error("Attempting to find ray/triangle intersection with uninitialised polyhedron.");
-    return findDistanceToPolyhedron(normalisedVector);
-}
-

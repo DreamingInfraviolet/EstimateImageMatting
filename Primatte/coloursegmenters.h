@@ -14,8 +14,8 @@ namespace anima
             class DistanceColourSegmenter : public IColourSegmenter
             {
             public:
-                virtual std::vector<Point> segment(const std::vector<Point>& points,
-                                                   const Point reference,
+                virtual std::vector<math::vec3> segment(const std::vector<math::vec3>& points,
+                                                   const math::vec3 reference,
                                                    float approximateRadius) const;
             };
         }

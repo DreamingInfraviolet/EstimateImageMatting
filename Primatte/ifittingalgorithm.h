@@ -1,5 +1,5 @@
 #pragma once
-#include "cgal.h"
+#include "spherepolyhedron.h"
 #include "matrixd.h"
 
 /** An interface defining the functionality needed by an algorithm that
@@ -22,7 +22,7 @@ namespace anima
                   * @param centre The centre towards which the polyhedron vertices should be moved.
                   * @param points The points around which to fit.
                   */
-                virtual void fit(Polyhedron& poly, const Point centre, const std::vector<Point>& points) const = 0;
+                virtual void fit(SpherePolyhedron& poly, const math::vec3 centre, const std::vector<math::vec3>& points) const = 0;
             };
         }
     }

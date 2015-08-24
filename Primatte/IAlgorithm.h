@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 #include <opencv2/opencv.hpp>
-#include "cgal.h"
 #include "inputassembler.h"
 
 namespace anima

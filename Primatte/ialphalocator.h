@@ -1,9 +1,9 @@
 #pragma once
 #include "boundingpolyhedron.h"
-#include "cgal.h"
 #include <vector>
 #include <opencv2/opencv.hpp>
 #include "inputassembler.h"
+
 /**
   * Given n polyhedrons, a reference centre point and a list of points,
   * return a vector of alphas corresponding to the list of points

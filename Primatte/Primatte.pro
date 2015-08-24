@@ -1,21 +1,15 @@
 TEMPLATE = app
 CONFIG += console
-QT += opengl openglextensions xml glviewer
-
-#QMAKE_CC = gcc-4.9
-#QMAKE_CXX = g++-4.9
+QT += opengl xml glviewer
 
 QT_CONFIG -= no-pkg-config
 CONFIG += link_pkgconfig
 PKGCONFIG += opencv
 
-QMAKE_CXXFLAGS += -std=c++0x -frounding-math -Wall
+QMAKE_CXXFLAGS += -std=c++0x -Wall
 INCLUDEPATH += /usr/include
 LIBS += -L/usr/lib
-LIBS +=  -lCGAL -lgmp -lboost_system -lboost_thread -lqglviewer-qt4 -lGLU
-
-DEFINES += DCGAL_DISABLE_ROUNDING_MATH_CHECK=1
-
+LIBS += -lqglviewer-qt4 -lGLU
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -24,13 +18,10 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp \
-    cgal.cpp \
     io.cpp \
     application.cpp \
     matrixd.cpp \
-    drawhelpers.cpp \
     boundingpolyhedron.cpp \
-    util.cpp \
     coloursegmenters.cpp \
     inputassembler.cpp \
     algorithmprimatte.cpp \
@@ -40,16 +31,12 @@ SOURCES += main.cpp \
     spherepolyhedron.cpp
 
 HEADERS  += \
-    cgal.h \
-    polyhedronloader.h \
     io.h \
     application.h \
     matrixd.h \
-    drawhelpers.h \
     boundingpolyhedron.h \
     icoloursegmenter.h \
     ifittingalgorithm.h \
-    util.h \
     coloursegmenters.h \
     inputassembler.h \
     IAlgorithm.h \
@@ -58,7 +45,6 @@ HEADERS  += \
     alphalocator.h \
     inputprocessing.h \
     fittingalgorithms.h \
-    geomhelper.h \
     spherepolyhedron.h
 
 
