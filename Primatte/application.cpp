@@ -1,16 +1,10 @@
+#include <stdexcept>
+#include <opencv2/core/core.hpp>
 #include "application.h"
-#include <vector>
-#include <cassert>
-#include <opencv2/opencv.hpp>
-
+#include "matrixd.h"
+#include "algorithmprimatte.h"
 #include "io.h"
 
-#include "boundingpolyhedron.h"
-#include "matrixd.h"
-
-#include "algorithmprimatte.h"
-#include "spherepolyhedron.h"
-#include <stdexcept>
 
 Application::Application() :
     mInputAssembler(nullptr),
@@ -27,64 +21,109 @@ void Application::timerEvent(QTimerEvent*)
     update();
 }
 
-
 void Application::init()
 {
     try
     {
         using namespace anima::ia;
+        using namespace anima::alg::primatte;
 
-        Inform("Running");
+        START_TIMER(WholeProgramTimer);
 
+        //Restore QGLPreviewer state from last run, such as camera position, etc.
         restoreStateFromFile();
 
+        //A scene radius of 1 has some clipping.
         this->setSceneRadius(1.5);
 
         Inform("Processing input");
 
+        //Load the input mat in RGB format from file.
+        //It is possible to use memory instead.
+        //RGB is not a requirement, but helps in previewing the world.
         cv::Mat imageMat = InputAssembler::loadRgbMatFromFile("test.bmp");
 
-        math::vec3 background = math::vec3(78/255.f,94/255.f,239/255.f);
-
+        //This descriptor is used to initialise the input assembler.
         InputAssemblerDescriptor iaDesc;
-        iaDesc.source = &imageMat;
-        iaDesc.targetColourspace = InputAssemblerDescriptor::ETCS_LAB;
-        iaDesc.ipd.randomSimplify = true;
-        iaDesc.ipd.randomSimplifyPercentage = 50.0;
-        iaDesc.ipd.gridSize = 100;
-        iaDesc.backgroundPoint = background;
 
+        //Set the image source to be copied from.
+        //The source mat is converted into floating point rgb values.
+        //8-bit, 16-bit and floating point formats are supported.
+        //Expects a 3-component image.
+        iaDesc.source = &imageMat;
+
+        //The target colour space to convert to.
+        //Currently can either be RGB, HSV or LAB.
+        //HSV is unsuitable for blue due to wrap-around!
+        iaDesc.targetColourspace = InputAssemblerDescriptor::ETCS_LAB;
+
+        //The 3D grid segment count to use for cleaning up duplicate input
+        //points. Lower values require less memory and filter more aggressively.
+        iaDesc.ipd.gridSize = 100;
+
+        //Remove % of points randomly after cleanup to speed up computation.
+        iaDesc.ipd.randomSimplify = true;
+        iaDesc.ipd.randomSimplifyPercentage = 70.0;
+
+        //The background colour, in the colourspace of the input in the [0,1] component range.
+        //Do not refer to this after creating the input assembler:
+        //the background() of the input assembler accounts for colourspace conversion.
+        math::vec3 backgroundColour = math::vec3(239/255.f, 94/255.f, 78/255.f);
+        iaDesc.backgroundPoint = backgroundColour;
+
+        //Create the assembler object, load, and process the input.
+        //An exception will be thrown in case of an error, most likely
+        //a std::runtime_error.
         mInputAssembler = new InputAssembler(iaDesc);
 
         Inform("Creating primatte algorithm");
 
+        //Fill in the algorithm descriptor.
+        AlgorithmPrimatteDesc algDesc;
 
-        anima::alg::primatte::AlgorithmPrimatteDesc algDesc;
+        //The fitter algorithm to use.
         algDesc.boundingPolyhedronDesc.fitter = &fitter;
+
+        //The number of phi and theta faces for the generated sphere.
+        //Optimally, there is a ration of 2:1. 16*8 is a 128-faced sphere.
         algDesc.boundingPolyhedronDesc.phiFaces = 16;
         algDesc.boundingPolyhedronDesc.thetaFaces = 8;
+
+        //The sphere is multiplied by this amount after creation to ensure no
+        //accidental intersection with the points due to low mesh resolution.
         algDesc.boundingPolyhedronDesc.scaleMultiplier = 1.1f;
-        algDesc.boundingPolyhedronDesc.centre = mInputAssembler->background();
+
+        //The segmenter splits the points into outer and inner points.
         algDesc.segmenter = &segmenter;
+
+        //The alpha locator is responsible for interpolating and generating the alpha.
         algDesc.alphaLocator = &alphaLocator;
 
-        mAlgorithm = new anima::alg::primatte::AlgorithmPrimatte(algDesc);
+        mAlgorithm = new AlgorithmPrimatte(algDesc);
 
         Inform("Analysing input");
+        //Set the new input to be used.
         mAlgorithm->setInput(mInputAssembler);
+
+        //Analyse the input. This is a performance-intensive operation.
+        //In primatte this corresponds to polyhedron deformation.
         mAlgorithm->analyse();
 
         Inform("Applying results");
+
+        //Apply the polyhedrae to the input image, and save the alpha to result.
         auto result = mAlgorithm->computeAlphas();
 
+        //Display the alpha image
+        cv::namedWindow("Alpha", cv::WINDOW_AUTOSIZE);
+        cv::imshow("Alpha", result);
 
-        cv::namedWindow( "Alpha", cv::WINDOW_AUTOSIZE );// Create a window for display.
-        cv::imshow( "Alpha", result );
-
+        //Apply the alpha to the original image in order to preview it.
         cv::Mat af = imageMat;
 
-        //bgr format
-        cv::Vec3f backgroundBlendColour(0,255,0);
+        //The background colour to blend with in BGR format.
+        cv::Vec3f backgroundBlendColour(0,1,0);
+        cv::Vec3f backgroundInImage(backgroundColour.x,backgroundColour.y,backgroundColour.z);
 
         for(int r = 0; r < af.rows; ++r)
             for(int c = 0; c < af.cols; ++c)
@@ -92,34 +131,46 @@ void Application::init()
                 cv::Vec3b& original = af.at<cv::Vec3b>(r,c);
                 float alpha = result.at<float>(r,c);
                 cv::Vec3f originalf = original;
-                cv::Vec3f result = originalf*alpha + backgroundBlendColour*(1.f-alpha);
-                original = result;
+                originalf *= 1/255.f;
+
+                //get foreground colour
+                cv::Vec3f foreground = (originalf - backgroundInImage*(1 - alpha))*(alpha);
+
+                original = (foreground*alpha + backgroundBlendColour*(1.f-alpha))*255;
             }
 
-        cv::namedWindow( "AF", cv::WINDOW_AUTOSIZE );// Create a window for display.
+        cv::namedWindow( "AF", cv::WINDOW_AUTOSIZE );
         cv::imshow( "AF", af );
 
+        //This makes things difficult to see and interferes with the pixel colours.
         glDisable(GL_LIGHTING);
 
         //Set fps (update every n milliseconds). 16.66... ~ 60fps
         mBasicTimer.start(16.66666666, this);
+
+        END_TIMER(WholeProgramTimer);
     }
     catch(std::runtime_error err)
     {
+        //If a known error has occured:
         Error(err.what());
         this->close();
     }
     catch(...)
     {
+        //If an unknown exception happened:
         Error("Something happened");
         this->close();
     }
 }
 
+/** This function takes in a normalised colour in linear colourspace and
+    calls glColour3f with its gamma-corrected version. */
 void glColor3fSRGB(float x, float y, float z)
 {
     glColor3f(pow(x,2.2f),pow(y,2.2f),pow(z,2.2f));
 }
+
 
 void Application::draw()
 {
@@ -132,11 +183,10 @@ void Application::draw()
   for(auto it = mInputAssembler->points().begin(); it!=mInputAssembler->points().end(); ++it)
   {
       auto c = mInputAssembler->debugGetPointColour(*it);
-      glColor3fSRGB(c.x,c.y,c.z);
+      glColor3fSRGB(c.z,c.y,c.x);
       glVertex3f(it->x, it->y, it->z);
   }
   glEnd();
-
 
   //Draw background point
   if(mInputAssembler)
@@ -155,7 +205,6 @@ void Application::draw()
       mAlgorithm->debugDraw();
   glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
-  //Draw debug sphere
   glPointSize(5.0);
 }
 

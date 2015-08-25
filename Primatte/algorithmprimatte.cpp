@@ -4,6 +4,8 @@
 #include "ifittingalgorithm.h"
 #include "inputassembler.h"
 #include <stdexcept>
+#include "io.h"
+
 
 namespace anima
 {
@@ -13,12 +15,7 @@ namespace anima
         {
             AlgorithmPrimatte::AlgorithmPrimatte(AlgorithmPrimatteDesc desc)
             {
-                BoundingPolyhedron poly (desc.boundingPolyhedronDesc);
-
-                mPolys[POLY_INNER] = poly;
-                mPolys[POLY_MIDDLE] = poly;
-                mPolys[POLY_OUTER] = poly;
-
+                //Validate desc
                 if(!desc.segmenter)
                     throw std::runtime_error("Null segmenter");
 
@@ -28,22 +25,32 @@ namespace anima
                 mDesc = desc;
             }
 
-            /** Prepares alpha computation for the given data set. */
             void AlgorithmPrimatte::analyse()
             {
-                mPolys[POLY_OUTER].positionAround(mInput->points());
-                //mPolys[POLY_OUTER].fit(mInput->points(), mInput->background());
+                if(!mInput)
+                    throw std::runtime_error("Using algorithm with null input.");
 
-                auto middlePoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.3f);
-                mPolys[POLY_MIDDLE].positionAround(middlePoints);
-                //mPolys[POLY_MIDDLE].fit(middlePoints, mInput->background());
+                //Fill in the polyhedron objects:
+                BoundingPolyhedron poly (mDesc.boundingPolyhedronDesc, mInput->background());
+                for(int i = 0; i < POLY_COUNT; ++i)
+                    mPolys[i] = poly;
 
-                auto innerPoints = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.1f);
-                mPolys[POLY_INNER].positionAround(innerPoints);
-                mPolys[POLY_INNER].fit(innerPoints, mInput->background());
+                auto subset1 = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.22f);
+                auto subset2 = mDesc.segmenter->segment(subset1, mInput->background(), 0.16f);
+                auto subset3 = mDesc.segmenter->segment(subset2, mInput->background(), 0.05f);
+
+                mPolys[POLY_INNER].positionAround(subset3);
+                mPolys[POLY_INNER].shrink(subset3);
+
+                subset2.insert(subset2.end(), mPolys[POLY_INNER].mVertices.begin(),mPolys[POLY_INNER].mVertices.end());
+                mPolys[POLY_MIDDLE].positionAround(subset2);
+                mPolys[POLY_MIDDLE].shrink(subset2);
+
+                subset1.insert(subset1.end(), mPolys[POLY_MIDDLE].mVertices.begin(),mPolys[POLY_MIDDLE].mVertices.end());
+                mPolys[POLY_OUTER].positionAround(subset1);
+                mPolys[POLY_OUTER].shrink(subset1);
             }
 
-            /** Computes the alpha for the given set of points. */
             cv::Mat AlgorithmPrimatte::computeAlphas() const
             {
                 return mDesc.alphaLocator->findAlphas(mPolys, POLY_COUNT, *mInput);
@@ -51,9 +58,8 @@ namespace anima
 
             void AlgorithmPrimatte::debugDraw() const
             {
-                mPolys[POLY_OUTER].debugDraw(math::vec3(0,0,0));
-                mPolys[POLY_MIDDLE].debugDraw(math::vec3(0,1,0));
-                mPolys[POLY_INNER].debugDraw(math::vec3(1,0,0));
+                for(int i = 0;  i < POLY_COUNT; ++i)
+                    mPolys[i].debugDraw(math::vec3((float)((i+2)%4==0), (float)((i+2)%3==0), 0.f));
             }
         }
     }

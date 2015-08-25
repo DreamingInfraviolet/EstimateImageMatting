@@ -8,31 +8,20 @@ namespace anima
 {
     namespace ia
     {
-
-        InputAssembler::~InputAssembler()
-        {
-            delete[] mGrid;
-        }
-
         cv::Mat InputAssembler::loadRgbMatFromFile(const char* path)
         {
             cv::Mat mat;
             mat = cv::imread(path);
             if(mat.data==nullptr)
                 throw std::runtime_error("Could not load image data.");
+            mat.convertTo(mat, CV_8UC3);
 
-            cv::Mat matbgr;
-            mat.convertTo(matbgr, CV_8UC3);
-
-            cv::Mat imageMat;
-            cv::cvtColor(matbgr, imageMat, CV_BGR2RGB);
-
-            return imageMat;
+            return mat;
         }
 
         InputAssembler::InputAssembler(InputAssemblerDescriptor& desc)
-            : mGrid(nullptr)
         {
+            START_TIMER(ProcessingInput);
             //Convert the input into 3 component float mat.
             if(desc.source == nullptr)
                 throw std::runtime_error("Null source mat");
@@ -95,10 +84,9 @@ namespace anima
                 break;
             }
 
-            auto result = ProcessPoints(mMatF, desc.ipd);
-            mPoints = result.first;
-            mGrid = result.second;
-            mGridSize = desc.ipd.gridSize;
+            mPoints = ProcessPoints(mMatF, desc.ipd);
+
+            END_TIMER(ProcessingInput);
         }
 
         cv::Point3f InputAssembler::debugGetPointColour(math::vec3 p) const

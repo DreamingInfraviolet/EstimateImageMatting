@@ -10,9 +10,9 @@ namespace anima
 {
     namespace ia
     {
-        std::pair<std::vector<math::vec3>, bool*> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize)
+        std::vector<math::vec3> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize)
         {
-            Inform("Cleaning point data using 3D grid...");
+            START_TIMER(CleaningWithGrid);
 
             const unsigned r = mat.rows, c = mat.cols;
 
@@ -47,12 +47,16 @@ namespace anima
                     }
                 }
 
-            return std::make_pair(points,grid);
+            delete[] grid;
+
+            END_TIMER(CleaningWithGrid);
+
+            return points;
         }
 
         void RandomSimplify(std::vector<math::vec3>* points, float percentageToRemove)
         {
-            Inform("Removing points randomly...");
+            START_TIMER(RandomSimplifying);
             size_t initialSize = points->size();
 
             std::random_device rd;
@@ -63,10 +67,12 @@ namespace anima
 
             Inform("" + ToString(points->size()/float(initialSize)*100) + "% of points remain (" +
                    ToString(points->size()) + "/" + ToString(initialSize)+")");
+
+            END_TIMER(RandomSimplifying);
         }
 
 
-        std::pair<std::vector<math::vec3>, bool*> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc)
+        std::vector<math::vec3> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc)
         {
             assert(mat.type() == CV_32FC3);
 
@@ -75,11 +81,11 @@ namespace anima
             if(mat.rows*mat.cols==0 || mat.data==nullptr)
                 throw std::runtime_error("Invalid mat");
 
-            auto pointsAndGrid = RemoveDuplicatesWithGrid(mat, desc.gridSize);
+            auto points = RemoveDuplicatesWithGrid(mat, desc.gridSize);
 
             if(desc.randomSimplify)
-                RandomSimplify(&pointsAndGrid.first, desc.randomSimplifyPercentage);
-            return pointsAndGrid;
+                RandomSimplify(&points, desc.randomSimplifyPercentage);
+            return points;
         }
     }
 }

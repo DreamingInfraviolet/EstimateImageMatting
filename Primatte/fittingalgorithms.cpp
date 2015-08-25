@@ -7,32 +7,39 @@ namespace anima
     {
         namespace primatte
         {
-            void Test2Fitting::fit(SpherePolyhedron& poly, const math::vec3 centre,
+            void Test2Fitting::shrink(SpherePolyhedron& poly,
                                    const std::vector<math::vec3>& points) const
             {
-                float minDistance = 0.1;
+                START_TIMER(Shrinking);
+                float minDistance = 0.01;
+                int numberOfIterations = 2;
+                float startingStep = 0.3;
+
                 float minDistanceSquared = minDistance*minDistance;
 
-                for(auto vertex = poly.mVertices.begin(); vertex!=poly.mVertices.end(); ++vertex)
+                for(int iIteration = 0; iIteration < numberOfIterations; ++iIteration)
                 {
-                    float moveAmount = 0.01f;
-                    math::vec3 moveNormal = (centre - *vertex).normalize();
-                    const math::vec3 vec = moveNormal*moveAmount;
-                    //If already at centre, forget it
-                    if(centre.distanceSquared(*vertex+vec) < minDistanceSquared)
-                        break;
+                    float startingStepSquared = startingStep*startingStep;
 
-                    //Try to move vertex until all points are no longer inside
-                    int counter = 0;
-
-                    while(true)
+                    for(auto vertex = poly.mVertices.rbegin(); vertex!=poly.mVertices.rend(); ++vertex)
                     {
+                        //If too close, or move distance too great
+                        const float distanceCentreToVertex = poly.centre().distanceSquared(*vertex);
+                        if(distanceCentreToVertex < minDistanceSquared || distanceCentreToVertex < startingStepSquared)
+                            continue;
+
+                        math::vec3 moveNormal = (poly.centre() - *vertex).normalize();
+                        const math::vec3 vec = moveNormal*startingStep;
+
+                        //Move
+                        *vertex += vec;
+
                         //Check if every point is inside the sphere
                         bool allPointsInside = true;
                         for(auto itPoint = points.begin(); itPoint != points.end(); ++itPoint)
                         {
                             //If intersects
-                            math::vec3 vector = *itPoint - centre;
+                            math::vec3 vector = *itPoint - poly.centre();
                             float vectorLen = vector.length();
                             math::vec3 vectorNorm = vector/vectorLen;
 
@@ -43,20 +50,35 @@ namespace anima
                             }
                         }
 
-                        if(!allPointsInside || counter++==50) break;
+                        //If movement violates rule, move back.
 
-                        *vertex += vec;
+                        if(!allPointsInside)
+                            *vertex -= vec;
                     }
 
-                    *vertex -= vec;
+                    startingStep *= 0.5f;
                 }
+
+                END_TIMER(Shrinking);
+            }
+
+            void Test2Fitting::expand(SpherePolyhedron& poly,
+                                   const std::vector<math::vec3>& points) const
+            {
+
             }
 
             /////////////////////////////////////////////////////////////////////////////////
 
 
-            void NoFitting::fit(SpherePolyhedron& poly, const math::vec3 centre,
-                                        const std::vector<math::vec3>& points) const
+            void NoFitting::shrink(SpherePolyhedron&,
+                                        const std::vector<math::vec3>&) const
+            {
+                return;
+            }
+
+            void NoFitting::expand(SpherePolyhedron&,
+                                        const std::vector<math::vec3>&) const
             {
                 return;
             }

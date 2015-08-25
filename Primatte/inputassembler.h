@@ -21,8 +21,11 @@ namespace anima
             /** The colour space to which the input will be converted. */
             TargetColourspace targetColourspace;
 
-            /** The source from which the input should be copied. */
-            cv::Mat* source;
+            /** Set the image source to be copied from.
+                The source mat is converted into floating point rgb values.
+                8-bit, 16-bit and floating point formats are supported.
+                Expects a 3-component image. */
+            const cv::Mat* source;
 
             InputProcessingDescriptor ipd;
 
@@ -42,15 +45,11 @@ namespace anima
             cv::Mat mMatF;
             std::vector<math::vec3> mPoints;
             math::vec3 mBackground;
-            bool* mGrid; //A 3D grid
-            size_t mGridSize;
             InputAssemblerDescriptor::TargetColourspace mColourSpace;
         public:
 
             /** Initialises the input, throwing an exception if failed. */
             InputAssembler(InputAssemblerDescriptor& desc);
-
-            ~InputAssembler();
 
             /** Returns the internal points. */
             const std::vector<math::vec3>& points() const;
@@ -60,10 +59,6 @@ namespace anima
 
             /** Returns the background point in the correct colour space. */
             math::vec3 background() const;
-
-            const bool* grid() const {return mGrid;}
-
-            size_t gridSize() const { return mGridSize; }
 
             //Converts from internal colour space to rgb
             cv::Point3f debugGetPointColour(math::vec3 p) const;

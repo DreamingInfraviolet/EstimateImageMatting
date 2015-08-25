@@ -42,6 +42,12 @@ std::string ToHexString(const T t)
  */
 
 #include <chrono>
+
+#ifdef NOTE_TIMER_START
 #define START_TIMER(t) auto t = std::chrono::system_clock::now(); Inform("Starting timer: "#t);
+#else
+#define START_TIMER(t) auto t = std::chrono::system_clock::now();
+#endif
+
 #define END_TIMER(t) {Inform("Stopping timer: "#t + std::string(" : ") + \
     ToString(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - t).count()));}

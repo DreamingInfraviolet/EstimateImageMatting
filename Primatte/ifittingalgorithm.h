@@ -18,11 +18,16 @@ namespace anima
                 virtual ~IFittingAlgorithm(){}
 
                 /** Fits the polyhedron around the points.
-                  * @param poly The polyhedron reference to be fitted.
-                  * @param centre The centre towards which the polyhedron vertices should be moved.
-                  * @param points The points around which to fit.
+                  * @param poly The polyhedron to be shrunk.
+                  * @param points The points around which to shrink.
                   */
-                virtual void fit(SpherePolyhedron& poly, const math::vec3 centre, const std::vector<math::vec3>& points) const = 0;
+                virtual void shrink(SpherePolyhedron& poly, const std::vector<math::vec3>& points) const = 0;
+
+                /** Fits the polyhedron around the points.
+                  * @param poly The polyhedron to be expanded.
+                  * @param points The points inside which to expand.
+                  */
+                virtual void expand(SpherePolyhedron& poly, const std::vector<math::vec3>& points) const = 0;
             };
         }
     }

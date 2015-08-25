@@ -36,12 +36,11 @@ namespace anima
 
         /** Takes in a vector of points and a descriptor and returns the cleaned up corresponding normalised points. #
           * also returns a pointer to the 3d grid. Memory management up to the user.*/
-        std::pair<std::vector<math::vec3>, bool*> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc);
+        std::vector<math::vec3> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc);
 
         /** Constructs a 3D grid of booleans to ensure that only one point is kept per box.
-          * Memory consumption = sizeof(bool)*gridSize*gridSize*gridSize. Fairly fast.
-          * Also converts to a vector of points* also returns a pointer to the 3d grid. Memory management up to the user.*/
-        std::pair<std::vector<math::vec3>, bool*> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize);
+          * Memory consumption = sizeof(bool)*gridSize*gridSize*gridSize. Fairly fast.*/
+        std::vector<math::vec3> RemoveDuplicatesWithGrid(const cv::Mat& mat, unsigned gridSize);
 
         /** Randomly deletes the points. */
         void RandomSimplify(std::vector<math::vec3>* points, float percentageToRemove);

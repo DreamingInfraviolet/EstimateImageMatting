@@ -24,20 +24,11 @@ namespace anima
 
                 /* The fitting algorithm to use to fit the polyhedron around the points. */
                 IFittingAlgorithm* fitter;
-
-                /* The desired centre of the polyhedron. */
-                math::vec3 centre;
             };
 
-            class BoundingPolyhedron
+            class BoundingPolyhedron : public SpherePolyhedron
             {
             private:
-                /* The internal polyhedron object. */
-                SpherePolyhedron mPoly;
-
-                /* The initial radius of the polyhedron. */
-                float mInitialRadius;
-
                 /* The descriptor object. */
                 BoundingPolyhedronDescriptor mDesc;
 
@@ -47,10 +38,10 @@ namespace anima
 
             public:
                 /** Constructs an uninitialised object. */
-                BoundingPolyhedron() : mInitialRadius(0),mInitialised(false) {}
+                BoundingPolyhedron() : mInitialised(false) {}
 
                 /** Constructs the object from the descriptor. */
-                BoundingPolyhedron(BoundingPolyhedronDescriptor desc);
+                BoundingPolyhedron(BoundingPolyhedronDescriptor desc, const math::vec3 centre);
 
                 /** Positions the polyhedral sphere around the points,
                   * only using linear transformations.
@@ -59,25 +50,10 @@ namespace anima
                   */
                 void positionAround(const std::vector<math::vec3>& points);
 
-                /** Uses the supplied fitting algorithm to wrap the polyhedron
-                  * around the points using per-vertex operations.
-                  * @param points The points around which the polyhedron should be fitted.
-                  * @param centre The point towards which the polyhedron should be fitted.
-                  */
-                void fit(const std::vector<math::vec3>& points, math::vec3 centre);
 
-                /** Draws a preview of the polyhedron with the given colour.
-                  * @param colour A colour with components in the range [0,255]
-                  */
-                void debugDraw(math::vec3 colour) const;
+                void shrink(const std::vector<math::vec3>& points);
 
-                /** Returns the initial radius of the sphere. */
-                float initialRadius() const;
-
-                /** Returns the initial centre of the sphere. */
-                math::vec3 centre() const { return mDesc.centre; }
-
-                const SpherePolyhedron& polyhedron() const { return mPoly; }
+                void expand(const std::vector<math::vec3>& points);
             };
         }
     }

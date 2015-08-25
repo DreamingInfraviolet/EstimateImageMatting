@@ -2,11 +2,14 @@
 #include "IAlgorithm.h"
 #include "boundingpolyhedron.h"
 #include "matrixd.h"
+#include "inputassembler.h"
 
-
-/** This class implements an algorithm inspired by primatte. */
+/** This class implements an algorithm inspired by primatte.
+    Its main purpose is to combine all the other algorithms in the
+    primatte namespace. */
 namespace anima
 {
+    //Forward declaration.
     namespace ia
     {
         class InputAssembler;
@@ -16,14 +19,15 @@ namespace anima
     {
         namespace primatte
         {
+            //Forward declaration.
             class IFittingAlgorithm;
             class IColourSegmenter;
             class IAlphaLocator;
 
-            /** The algorithm descriptor. */
+            /** The algorithm descriptor to use when creating the algorithm. */
             struct AlgorithmPrimatteDesc
             {
-                /* The algorithm to use to group clusters of points. */
+                /* The algorithm to use to group clusters of points together. */
                 IColourSegmenter* segmenter;
 
                 /* The locator used for alpha generation. */
@@ -31,18 +35,17 @@ namespace anima
 
                 /* The bounding polyhedron descriptor. */
                 BoundingPolyhedronDescriptor boundingPolyhedronDesc;
-
-                /* The point to represent the background image colour. */
-                math::vec3 backgroundPoint;
             };
 
             /** The primatte-inspired algorithm. */
             class AlgorithmPrimatte : public IAlgorithm
             {
-                /* Warning: Must be in inner->outer order. */
+                /* The internal sphere ennumerations.
+                 * Warning: Must be in inner->outer order.
+                 * When improving the algorithm, one may wish to use more spheres. */
                 enum PolyId {POLY_INNER, POLY_MIDDLE, POLY_OUTER, POLY_COUNT};
 
-                /* The polyhedron objects. */
+                /* The polyhedron objects in inner->outer order. */
                 BoundingPolyhedron mPolys[POLY_COUNT];
 
                 /* The algorithm descriptor. */
@@ -61,7 +64,7 @@ namespace anima
                   * previously supplied inputs. */
                 virtual cv::Mat computeAlphas() const;
 
-                /** Uses old gl to draw a representation of the internal polyhedrons. */
+                /** Uses OpenGL to draw a representation of the internal polyhedrons. */
                 virtual void debugDraw() const;
             };
         }

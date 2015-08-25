@@ -11,15 +11,17 @@ namespace anima
     {
         namespace primatte
         {
-            BoundingPolyhedron::BoundingPolyhedron(BoundingPolyhedronDescriptor desc)
+            BoundingPolyhedron::BoundingPolyhedron(BoundingPolyhedronDescriptor desc, const math::vec3 centre)
+                : SpherePolyhedron(desc.phiFaces, desc.thetaFaces)
             {
                 if(desc.fitter==nullptr)
                     throw std::runtime_error("Null fitter");
 
                 mDesc = desc;
 
-                mPoly = SpherePolyhedron(desc.phiFaces, desc.thetaFaces);
 
+
+                mCentre = centre;
                 mInitialised = true;
             }
 
@@ -54,31 +56,26 @@ namespace anima
                     pointCentre = math::vec3(maxx+minx,maxy+miny,maxz+minz) / 2.f;
                 }
 
-                mInitialRadius = (pointRadius + mDesc.centre.distance(pointCentre))*mDesc.scaleMultiplier;;
-                mPoly.setCentreAndRadius(mDesc.centre, mInitialRadius);
+                mRadius = (pointRadius + mCentre.distance(pointCentre))*mDesc.scaleMultiplier;
+                setCentreAndRadius(mCentre, mRadius);
             }
 
-            float BoundingPolyhedron::initialRadius() const
-            {
-                if(!mInitialised)
-                    throw::std::runtime_error("Using uninitialised bounding polyhedron");
-                return mInitialRadius;
-            }
-
-            void BoundingPolyhedron::debugDraw(math::vec3 colour) const
-            {
-                if(!mInitialised)
-                    throw::std::runtime_error("Using uninitialised bounding polyhedron");
-                mPoly.debugDraw(colour);
-            }
-
-            void BoundingPolyhedron::fit(const std::vector<math::vec3> &points, math::vec3 centre)
+            void BoundingPolyhedron::shrink(const std::vector<math::vec3> &points)
             {
                 if(points.size()==0)
                     return;
                 if(!mInitialised)
                     throw::std::runtime_error("Using uninitialised bounding polyhedron");
-                mDesc.fitter->fit(mPoly, centre, points);
+                mDesc.fitter->shrink(*this, points);
+            }
+
+            void BoundingPolyhedron::expand(const std::vector<math::vec3> &points)
+            {
+                if(points.size()==0)
+                    return;
+                if(!mInitialised)
+                    throw::std::runtime_error("Using uninitialised bounding polyhedron");
+                mDesc.fitter->expand(*this, points);
             }
         }
     }
