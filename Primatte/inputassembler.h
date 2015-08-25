@@ -1,8 +1,8 @@
 #pragma once
 #include <cstring>
 #include <vector>
-#include "inputprocessing.h"
-#include <opencv2/opencv.hpp>
+#include "inputcleanup.h"
+#include <opencv2/core/core.hpp>
     /**
       * This class is responsible for taking an InputAssemblerDescriptor object,
       * and load+store the corresponding data.
@@ -27,7 +27,7 @@ namespace anima
                 Expects a 3-component image. */
             const cv::Mat* source;
 
-            InputProcessingDescriptor ipd;
+            InputCleanupDescriptor ipd;
 
             /** A normalised background point, in the colourspace of the source image.
               * Example, rgb(0,0,1), rgb(0.2,0.4,0) */

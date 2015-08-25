@@ -1,6 +1,5 @@
 #pragma once
 #include "matrixd.h"
-#include "ifittingalgorithm.h"
 #include "spherepolyhedron.h"
 
 /** A polyhedron object that's capable of wrapping itself around a set of points. */
@@ -10,6 +9,8 @@ namespace anima
     {
         namespace primatte
         {
+            class IFittingAlgorithm;
+
             /** The descriptor used to create the polyhedron. */
             struct BoundingPolyhedronDescriptor
             {

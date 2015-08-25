@@ -1,5 +1,5 @@
 #include <stdexcept>
-#include <opencv2/core/core.hpp>
+#include <opencv2/opencv.hpp>
 #include "application.h"
 #include "matrixd.h"
 #include "algorithmprimatte.h"
@@ -28,7 +28,6 @@ void Application::init()
         using namespace anima::ia;
         using namespace anima::alg::primatte;
 
-        START_TIMER(WholeProgramTimer);
 
         //Restore QGLPreviewer state from last run, such as camera position, etc.
         restoreStateFromFile();
@@ -43,6 +42,7 @@ void Application::init()
         //RGB is not a requirement, but helps in previewing the world.
         cv::Mat imageMat = InputAssembler::loadRgbMatFromFile("test.bmp");
 
+        START_TIMER(WholeProgramTimer);
         //This descriptor is used to initialise the input assembler.
         InputAssemblerDescriptor iaDesc;
 
@@ -111,6 +111,8 @@ void Application::init()
 
         Inform("Applying results");
 
+        END_TIMER(WholeProgramTimer);
+
         //Apply the polyhedrae to the input image, and save the alpha to result.
         auto result = mAlgorithm->computeAlphas();
 
@@ -148,7 +150,6 @@ void Application::init()
         //Set fps (update every n milliseconds). 16.66... ~ 60fps
         mBasicTimer.start(16.66666666, this);
 
-        END_TIMER(WholeProgramTimer);
     }
     catch(std::runtime_error err)
     {

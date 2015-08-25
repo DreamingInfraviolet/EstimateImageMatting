@@ -1,9 +1,9 @@
 #include "boundingpolyhedron.h"
 #include "io.h"
-#include <memory>
 #include "stdlib.h"
 #include <algorithm>
 #include <stdexcept>
+#include "ifittingalgorithm.h"
 
 namespace anima
 {
@@ -35,7 +35,7 @@ namespace anima
 
                 if(points.size()!=0)
                 {
-                    //Find bounding sphere
+                    //Find bounding box
                     float minx = 1,miny = 1,minz = 1,maxx = 0,maxy = 0,maxz = 0;
 
                     for(auto p = points.begin(); p!=points.end(); ++p)
@@ -52,6 +52,7 @@ namespace anima
                     float dy = maxy-miny;
                     float dz = maxz-minz;
 
+                    //Use bounding box to compute centre and radius.
                     pointRadius = std::max(dx, std::max(dy,dz)) / 2.f;
                     pointCentre = math::vec3(maxx+minx,maxy+miny,maxz+minz) / 2.f;
                 }

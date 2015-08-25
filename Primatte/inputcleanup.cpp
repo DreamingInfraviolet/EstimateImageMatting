@@ -1,6 +1,5 @@
-#include "inputprocessing.h"
+#include "inputcleanup.h"
 #include <vector>
-#include <set>
 #include <stdexcept>
 #include <random>
 #include <functional>
@@ -72,7 +71,7 @@ namespace anima
         }
 
 
-        std::vector<math::vec3> ProcessPoints(const cv::Mat& mat, InputProcessingDescriptor desc)
+        std::vector<math::vec3> ProcessPoints(const cv::Mat& mat, InputCleanupDescriptor desc)
         {
             assert(mat.type() == CV_32FC3);
 

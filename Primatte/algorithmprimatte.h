@@ -1,7 +1,6 @@
 #pragma once
 #include "IAlgorithm.h"
 #include "boundingpolyhedron.h"
-#include "matrixd.h"
 #include "inputassembler.h"
 
 /** This class implements an algorithm inspired by primatte.
@@ -33,7 +32,7 @@ namespace anima
                 /* The locator used for alpha generation. */
                 IAlphaLocator* alphaLocator;
 
-                /* The bounding polyhedron descriptor. */
+                /* The bounding polyhebescriptor. */
                 BoundingPolyhedronDescriptor boundingPolyhedronDesc;
             };
 

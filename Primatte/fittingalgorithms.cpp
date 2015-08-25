@@ -7,13 +7,16 @@ namespace anima
     {
         namespace primatte
         {
-            void Test2Fitting::shrink(SpherePolyhedron& poly,
+            void Test2Fitting::shrink(BoundingPolyhedron& poly,
                                    const std::vector<math::vec3>& points) const
             {
                 START_TIMER(Shrinking);
+
+                poly.positionAround(points);
+
                 float minDistance = 0.01;
-                int numberOfIterations = 2;
-                float startingStep = 0.3;
+                int numberOfIterations = 3;
+                float startingStep = 0.05;
 
                 float minDistanceSquared = minDistance*minDistance;
 
@@ -43,7 +46,7 @@ namespace anima
                             float vectorLen = vector.length();
                             math::vec3 vectorNorm = vector/vectorLen;
 
-                            if(poly.findIntersection(vectorNorm) < vectorLen)
+                            if(poly.findDistanceToPolyhedron(vectorNorm) < vectorLen)
                             {
                                 allPointsInside = false;
                                 break;
@@ -62,7 +65,7 @@ namespace anima
                 END_TIMER(Shrinking);
             }
 
-            void Test2Fitting::expand(SpherePolyhedron& poly,
+            void Test2Fitting::expand(BoundingPolyhedron& poly,
                                    const std::vector<math::vec3>& points) const
             {
 
@@ -71,13 +74,13 @@ namespace anima
             /////////////////////////////////////////////////////////////////////////////////
 
 
-            void NoFitting::shrink(SpherePolyhedron&,
+            void NoFitting::shrink(BoundingPolyhedron&,
                                         const std::vector<math::vec3>&) const
             {
                 return;
             }
 
-            void NoFitting::expand(SpherePolyhedron&,
+            void NoFitting::expand(BoundingPolyhedron&,
                                         const std::vector<math::vec3>&) const
             {
                 return;

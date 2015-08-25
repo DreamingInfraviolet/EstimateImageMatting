@@ -14,16 +14,16 @@ namespace anima
             class Test2Fitting : public IFittingAlgorithm
             {
             public:
-                virtual void shrink(SpherePolyhedron& poly, const std::vector<math::vec3>& points) const;
-                virtual void expand(SpherePolyhedron& poly, const std::vector<math::vec3>& points) const;
+                virtual void shrink(BoundingPolyhedron &poly, const std::vector<math::vec3>& points) const;
+                virtual void expand(BoundingPolyhedron& poly, const std::vector<math::vec3>& points) const;
             }; //End of class
 
             /** Does nothing */
             class NoFitting : public IFittingAlgorithm
             {
             public:
-                virtual void shrink(SpherePolyhedron& poly, const std::vector<math::vec3>& points) const;
-                virtual void expand(SpherePolyhedron& poly, const std::vector<math::vec3>& points) const;
+                virtual void shrink(BoundingPolyhedron& poly, const std::vector<math::vec3>& points) const;
+                virtual void expand(BoundingPolyhedron& poly, const std::vector<math::vec3>& points) const;
             }; //End of class
         }
     }

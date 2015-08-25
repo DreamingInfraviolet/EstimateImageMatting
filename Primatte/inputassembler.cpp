@@ -1,9 +1,8 @@
 #include "inputassembler.h"
 #include "matrixd.h"
 #include "io.h"
-#include <set>
 #include <stdexcept>
-
+#include <opencv2/opencv.hpp>
 namespace anima
 {
     namespace ia

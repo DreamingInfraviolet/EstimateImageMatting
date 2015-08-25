@@ -26,9 +26,9 @@ SOURCES += main.cpp \
     inputassembler.cpp \
     algorithmprimatte.cpp \
     alphalocator.cpp \
-    inputprocessing.cpp \
     fittingalgorithms.cpp \
-    spherepolyhedron.cpp
+    spherepolyhedron.cpp \
+    inputcleanup.cpp
 
 HEADERS  += \
     io.h \
@@ -43,8 +43,8 @@ HEADERS  += \
     algorithmprimatte.h \
     ialphalocator.h \
     alphalocator.h \
-    inputprocessing.h \
     fittingalgorithms.h \
-    spherepolyhedron.h
+    spherepolyhedron.h \
+    inputcleanup.h
 
 

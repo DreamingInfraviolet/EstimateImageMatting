@@ -1,7 +1,6 @@
 #include "alphalocator.h"
 #include "io.h"
 #include "matrixd.h"
-#include <fstream>
 
 using namespace anima::alg;
 
@@ -53,17 +52,17 @@ namespace anima
                             const math::vec3 vectorNorm = vector/vectorLen;
                             const float distanceToPoint = point.distance(background);
 
-                            const float distanceToOuterPoly = outerPoly.findIntersection(vectorNorm);
+                            const float distanceToOuterPoly = outerPoly.findDistanceToPolyhedron(vectorNorm);
 
                             //If inside outer poly, alpha < 1
                             if(distanceToPoint < distanceToOuterPoly)
                             {
-                                float distanceToMiddlePoly = middlePoly.findIntersection(vectorNorm);
+                                float distanceToMiddlePoly = middlePoly.findDistanceToPolyhedron(vectorNorm);
 
                                 //If does not intersect with middle, check inner
                                 if(distanceToPoint < distanceToMiddlePoly)
                                 {
-                                    float distanceToInnerPoly = innerPoly.findIntersection(vectorNorm);
+                                    float distanceToInnerPoly = innerPoly.findDistanceToPolyhedron(vectorNorm);
 
                                     //If does not intersect with middle, fully inside
                                     if(distanceToPoint < distanceToInnerPoly)
