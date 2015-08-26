@@ -5,6 +5,8 @@
 #include "coloursegmenters.h"
 #include "fittingalgorithms.h"
 #include "alphalocator.h"
+#include "averagebackgroundcolourlocators.h"
+
 namespace anima { namespace alg { class IAlgorithm; } }
 
 /** The main application class. It is to be replaced in the future by a proper
@@ -52,4 +54,6 @@ public:
 
     /* The alpha interpolation algorithm to use. */
     anima::alg::primatte::AlphaRayLocator alphaLocator;
+
+    anima::ia::ABCL_BarycentreBased backgroundLocator;
 };

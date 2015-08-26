@@ -28,23 +28,24 @@ SOURCES += main.cpp \
     alphalocator.cpp \
     fittingalgorithms.cpp \
     spherepolyhedron.cpp \
-    inputcleanup.cpp
+    averagebackgroundcolourlocators.cpp
 
 HEADERS  += \
     io.h \
     application.h \
     matrixd.h \
-    boundingpolyhedron.h \
     icoloursegmenter.h \
     ifittingalgorithm.h \
     coloursegmenters.h \
     inputassembler.h \
-    IAlgorithm.h \
     algorithmprimatte.h \
     ialphalocator.h \
     alphalocator.h \
     fittingalgorithms.h \
     spherepolyhedron.h \
-    inputcleanup.h
+    boundingpolyhedron.h \
+    ialgorithm.h \
+    averagebackgroundcolourlocators.h \
+    iaveragebackgroundcolourlocator.h
 
 

@@ -153,6 +153,7 @@ namespace anima
         mCentre = centre;
     }
 
+
     void SpherePolyhedron::debugDraw(math::vec3 colour) const
     {
         //Iterate over the quads

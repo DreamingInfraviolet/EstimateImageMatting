@@ -8,7 +8,8 @@ namespace anima
     {
         namespace primatte
         {
-        /** Sends out rays to determine the alpha. */
+        /** Sends out rays to determine the alpha, interpolating between the three
+          * spheres. */
         class AlphaRayLocator : public IAlphaLocator
         {
         public:

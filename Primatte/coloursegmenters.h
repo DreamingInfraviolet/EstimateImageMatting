@@ -18,6 +18,14 @@ namespace anima
                                                    const math::vec3 reference,
                                                    float approximateRadius) const;
             };
+
+//            class DistanceColourSegmenter : public IColourSegmenter
+//            {
+//                virtual std::pair<std::vector<math::vec3>,std::vector<math::vec3> >
+//                    segment(const std::vector<math::vec3>& points,
+//                                                   const math::vec3 background,
+//                                                   float approximateRadius) const;
+//            };
         }
     }
 }

@@ -5,9 +5,9 @@
 #include "inputassembler.h"
 
 /**
-  * Given n polyhedrons, a reference centre point and a list of points,
+  * Given n polyhedrons, a background centre point and a list of points,
   * return a vector of alphas corresponding to the list of points
-  * in relation to the reference point.
+  * in relation to the background point.
   */
 
 namespace anima

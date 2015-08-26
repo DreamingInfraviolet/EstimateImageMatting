@@ -40,22 +40,27 @@ void Application::init()
         //Load the input mat in RGB format from file.
         //It is possible to use memory instead.
         //RGB is not a requirement, but helps in previewing the world.
-        cv::Mat imageMat = InputAssembler::loadRgbMatFromFile("test.bmp");
+        cv::Mat imageMat = InputAssembler::loadMatFromFile("test.bmp");
+        cv::Mat backgroundMat = InputAssembler::loadMatFromFile("test_background.bmp");
 
         START_TIMER(WholeProgramTimer);
         //This descriptor is used to initialise the input assembler.
         InputAssemblerDescriptor iaDesc;
 
+        iaDesc.backgroundSource = &backgroundMat;
+
+        iaDesc.backgroundLocator = &backgroundLocator;
+
         //Set the image source to be copied from.
         //The source mat is converted into floating point rgb values.
         //8-bit, 16-bit and floating point formats are supported.
         //Expects a 3-component image.
-        iaDesc.source = &imageMat;
+        iaDesc.foregroundSource = &imageMat;
 
         //The target colour space to convert to.
         //Currently can either be RGB, HSV or LAB.
         //HSV is unsuitable for blue due to wrap-around!
-        iaDesc.targetColourspace = InputAssemblerDescriptor::ETCS_LAB;
+        iaDesc.targetColourspace = InputAssemblerDescriptor::ETCS_RGB;
 
         //The 3D grid segment count to use for cleaning up duplicate input
         //points. Lower values require less memory and filter more aggressively.
@@ -63,13 +68,7 @@ void Application::init()
 
         //Remove % of points randomly after cleanup to speed up computation.
         iaDesc.ipd.randomSimplify = true;
-        iaDesc.ipd.randomSimplifyPercentage = 70.0;
-
-        //The background colour, in the colourspace of the input in the [0,1] component range.
-        //Do not refer to this after creating the input assembler:
-        //the background() of the input assembler accounts for colourspace conversion.
-        math::vec3 backgroundColour = math::vec3(239/255.f, 94/255.f, 78/255.f);
-        iaDesc.backgroundPoint = backgroundColour;
+        iaDesc.ipd.randomSimplifyPercentage = 50.0;
 
         //Create the assembler object, load, and process the input.
         //An exception will be thrown in case of an error, most likely
@@ -91,7 +90,7 @@ void Application::init()
 
         //The sphere is multiplied by this amount after creation to ensure no
         //accidental intersection with the points due to low mesh resolution.
-        algDesc.boundingPolyhedronDesc.scaleMultiplier = 1.1f;
+        algDesc.boundingPolyhedronDesc.scaleMultiplier = 1.2f;
 
         //The segmenter splits the points into outer and inner points.
         algDesc.segmenter = &segmenter;
@@ -111,11 +110,11 @@ void Application::init()
 
         Inform("Applying results");
 
-        END_TIMER(WholeProgramTimer);
 
         //Apply the polyhedrae to the input image, and save the alpha to result.
-        auto result = mAlgorithm->computeAlphas();
+        cv::Mat result = mAlgorithm->computeAlphas();
 
+        END_TIMER(WholeProgramTimer);
         //Display the alpha image
         cv::namedWindow("Alpha", cv::WINDOW_AUTOSIZE);
         cv::imshow("Alpha", result);
@@ -125,7 +124,9 @@ void Application::init()
 
         //The background colour to blend with in BGR format.
         cv::Vec3f backgroundBlendColour(0,1,0);
-        cv::Vec3f backgroundInImage(backgroundColour.x,backgroundColour.y,backgroundColour.z);
+        cv::Vec3f backgroundInImage(mInputAssembler->background().x,
+                                    mInputAssembler->background().y,
+                                    mInputAssembler->background().z);
 
         for(int r = 0; r < af.rows; ++r)
             for(int c = 0; c < af.cols; ++c)
@@ -181,6 +182,12 @@ void Application::draw()
   glPointSize(5.0);
   glLineWidth(2);
   glBegin(GL_POINTS);
+//  for(auto it = mInputAssembler->backgroundPoints().begin(); it!=mInputAssembler->backgroundPoints().end(); ++it)
+//  {
+//      auto c = mInputAssembler->debugGetPointColour(*it);
+//      glColor3fSRGB(c.z,c.y,c.x);
+//      glVertex3f(it->x, it->y, it->z);
+//  }
   for(auto it = mInputAssembler->points().begin(); it!=mInputAssembler->points().end(); ++it)
   {
       auto c = mInputAssembler->debugGetPointColour(*it);

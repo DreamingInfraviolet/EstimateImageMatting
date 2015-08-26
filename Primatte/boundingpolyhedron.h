@@ -51,10 +51,14 @@ namespace anima
                   */
                 void positionAround(const std::vector<math::vec3>& points);
 
-
+                /** Shrinks the sphere around a given set of points. */
                 void shrink(const std::vector<math::vec3>& points);
 
+                /** Expands the sphere beneath a given set of points. */
                 void expand(const std::vector<math::vec3>& points);
+
+                /** Returns a copy of the polyhedron scaled around the centre */
+                BoundingPolyhedron operator * (const float scale);
             };
         }
     }

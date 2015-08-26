@@ -15,8 +15,8 @@ namespace anima
                 poly.positionAround(points);
 
                 float minDistance = 0.01;
-                int numberOfIterations = 3;
-                float startingStep = 0.05;
+                int numberOfIterations = 5;
+                float startingStep = 0.25;
 
                 float minDistanceSquared = minDistance*minDistance;
 
@@ -68,7 +68,7 @@ namespace anima
             void Test2Fitting::expand(BoundingPolyhedron& poly,
                                    const std::vector<math::vec3>& points) const
             {
-
+                poly.positionAround(points);
             }
 
             /////////////////////////////////////////////////////////////////////////////////

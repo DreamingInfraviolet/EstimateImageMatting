@@ -12,13 +12,9 @@ namespace anima
         class IAlgorithm
         {
         protected:
-            /* Must be set by prepare() when prepared. */
-            bool mPrepared;
+
             const ia::InputAssembler* mInput;
         public:
-
-            /** Trivial constructor. */
-            IAlgorithm() : mPrepared(false) {}
 
             /** Trivial virtual destructor */
             virtual ~IAlgorithm(){}
@@ -36,12 +32,6 @@ namespace anima
 
             /** Computes the alpha for the internal input.*/
             virtual cv::Mat computeAlphas() const = 0;
-
-            /** Indicates whether prepare() has been called. */
-            virtual bool prepared() const
-            {
-                return mPrepared;
-            }
 
             /** Draws a 3D representation of the algorithm. */
             virtual void debugDraw() const = 0;

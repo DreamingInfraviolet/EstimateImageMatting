@@ -334,7 +334,6 @@ namespace math
     typedef tmp::_vec3<matInt> vec3i;
     typedef tmp::_vec4<matInt> vec4i;
 
-    //Forced float/double:
     typedef tmp::_vec2<float> vec2f;
     typedef tmp::_vec3<float> vec3f;
     typedef tmp::_vec4<float> vec4f;
@@ -342,7 +341,6 @@ namespace math
     typedef tmp::_vec3<double> vec3d;
     typedef tmp::_vec4<double> vec4d;
 
-    //Forced int/long long:
     typedef tmp::_vec2<int> vec2ii;
     typedef tmp::_vec3<int> vec3ii;
     typedef tmp::_vec4<int> vec4ii;
@@ -350,23 +348,20 @@ namespace math
     typedef tmp::_vec3<long long> vec3l;
     typedef tmp::_vec4<long long> vec4l;
 
-    //Forced short:
     typedef tmp::_vec2<short> vec2s;
     typedef tmp::_vec3<short> vec3s;
     typedef tmp::_vec4<short> vec4s;
 
-    //Type determined through typedefs:
     typedef tmp::_mat2 mat2;
     typedef tmp::_mat3 mat3;
     typedef tmp::_mat4 mat4;
 
-    //Alternative names:
     typedef vec2 Vector2f;
     typedef vec3 Vector3f;
     typedef vec4 Vector4f;
-    typedef vec2 Vector2i;
-    typedef vec3 Vector3i;
-    typedef vec4 Vector4i;
+    typedef vec2i Vector2i;
+    typedef vec3i Vector3i;
+    typedef vec4i Vector4i;
     typedef mat2 Matrix2x2;
     typedef mat3 Matrix3x3;
     typedef mat4 Matrix4x4;

@@ -1,11 +1,11 @@
 #pragma once
-#include "IAlgorithm.h"
+#include "ialgorithm.h"
 #include "boundingpolyhedron.h"
 #include "inputassembler.h"
 
 /** This class implements an algorithm inspired by primatte.
     Its main purpose is to combine all the other algorithms in the
-    primatte namespace. */
+    primatte namespace and provide a single interface. */
 namespace anima
 {
     //Forward declaration.
@@ -42,7 +42,7 @@ namespace anima
                 /* The internal sphere ennumerations.
                  * Warning: Must be in inner->outer order.
                  * When improving the algorithm, one may wish to use more spheres. */
-                enum PolyId {POLY_INNER, POLY_MIDDLE, POLY_OUTER, POLY_COUNT};
+                enum PolyId {POLY_INNER, POLY_OUTER, POLY_COUNT};
 
                 /* The polyhedron objects in inner->outer order. */
                 BoundingPolyhedron mPolys[POLY_COUNT];
@@ -56,7 +56,7 @@ namespace anima
                  * (most commonly std::runtime_error) */
                 AlgorithmPrimatte(AlgorithmPrimatteDesc desc);
 
-                /** Prepares alpha computation for the given data set. */
+                /** Prepares alpha computation for the given data set by analysing the input. */
                 virtual void analyse();
 
                 /** Computes the alphas for the given set of points in relation to the

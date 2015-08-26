@@ -32,20 +32,19 @@ namespace anima
 
                 //Fill in the polyhedron objects:
                 BoundingPolyhedron poly (mDesc.boundingPolyhedronDesc, mInput->background());
-                for(int i = 0; i < POLY_COUNT; ++i)
-                    mPolys[i] = poly;
+                mPolys[POLY_INNER] = poly;
 
-                auto subset1 = mDesc.segmenter->segment(mInput->points(), mInput->background(), 0.3f);
-                auto subset2 = mDesc.segmenter->segment(subset1, mInput->background(), 0.25f);
-                auto subset3 = mDesc.segmenter->segment(subset2, mInput->background(), 0.08f);
+                mPolys[POLY_INNER].shrink(mDesc.segmenter->segment(mInput->backgroundPoints(),
+                                                                   mInput->background(), 0.15));
 
-                mPolys[POLY_INNER].shrink(subset3);
+                mPolys[POLY_OUTER] = poly;
+//                mPolys[POLY_OUTER].expand(mInput->points());
+//                mPolys[POLY_OUTER] = mPolys[POLY_OUTER]*0.5f;
+                mPolys[POLY_OUTER].shrink(mInput->points());
+                mPolys[POLY_OUTER] = mPolys[POLY_OUTER]*0.6f;
 
-                subset2.insert(subset2.end(), mPolys[POLY_INNER].mVertices.begin(),mPolys[POLY_INNER].mVertices.end());
-                mPolys[POLY_MIDDLE].shrink(subset2);
 
-                subset1.insert(subset1.end(), mPolys[POLY_MIDDLE].mVertices.begin(),mPolys[POLY_MIDDLE].mVertices.end());
-                mPolys[POLY_OUTER].shrink(subset1);
+
             }
 
             cv::Mat AlgorithmPrimatte::computeAlphas() const

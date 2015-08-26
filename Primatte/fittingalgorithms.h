@@ -10,7 +10,7 @@ namespace anima
     {
         namespace primatte
         {
-            /** Trying...*/
+            /** Use exact fitting by trying to move points inside/outside while possible. */
             class Test2Fitting : public IFittingAlgorithm
             {
             public:

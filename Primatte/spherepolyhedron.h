@@ -104,6 +104,7 @@ namespace anima
 
         /** Returns the centre of the object. */
         math::vec3 centre() const { return mCentre; }
+
     };
 
 }

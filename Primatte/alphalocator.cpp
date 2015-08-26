@@ -17,7 +17,7 @@ namespace anima
                 const size_t polyhedronCount,
                 const ia::InputAssembler& input) const
             {
-                assert(polyhedronCount==3);
+                assert(polyhedronCount==2);
                 START_TIMER(AlphaLocator);
 
                 const cv::Mat& mat = input.mat();
@@ -27,8 +27,7 @@ namespace anima
                 cv::Mat out;
                 out.create(r, c, CV_32FC1);
 
-                const SpherePolyhedron& outerPoly = polyhedrons[2];
-                const SpherePolyhedron& middlePoly = polyhedrons[1];
+                const SpherePolyhedron& outerPoly = polyhedrons[1];
                 const SpherePolyhedron& innerPoly = polyhedrons[0];
 
                 //For each point, send rays
@@ -57,30 +56,15 @@ namespace anima
                             //If inside outer poly, alpha < 1
                             if(distanceToPoint < distanceToOuterPoly)
                             {
-                                float distanceToMiddlePoly = middlePoly.findDistanceToPolyhedron(vectorNorm);
+                                float distanceToInnerPoly = innerPoly.findDistanceToPolyhedron(vectorNorm);
 
-                                //If does not intersect with middle, check inner
-                                if(distanceToPoint < distanceToMiddlePoly)
-                                {
-                                    float distanceToInnerPoly = innerPoly.findDistanceToPolyhedron(vectorNorm);
+                                //If does not intersect with inner, fully inside
+                                if(distanceToPoint < distanceToInnerPoly)
+                                    alpha = 0;
+                                else //interpolate between inner and outer
+                                    alpha = (vectorLen - distanceToInnerPoly) /
+                                            (distanceToOuterPoly - distanceToInnerPoly);
 
-                                    //If does not intersect with middle, fully inside
-                                    if(distanceToPoint < distanceToInnerPoly)
-                                        alpha = 0;
-                                    else //interpolate between inner and middle
-                                    {
-                                        alpha = (vectorLen - distanceToInnerPoly) /
-                                                (distanceToMiddlePoly - distanceToInnerPoly);
-                                        alpha *= 0.99f;
-                                    }
-                                }
-                                else //Interpolate between middle and outer
-                                {
-                                    alpha = (vectorLen - distanceToMiddlePoly) /
-                                            (distanceToOuterPoly - distanceToMiddlePoly);
-                                    //Scale it into the [0.9,1] range.
-                                    alpha = alpha/100.f + 0.99f;
-                                }
                             }
                             else //If intersects with middle, it's outside. Alpha = 1.
                                 alpha = 1;

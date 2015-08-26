@@ -78,6 +78,15 @@ namespace anima
                     throw::std::runtime_error("Using uninitialised bounding polyhedron");
                 mDesc.fitter->expand(*this, points);
             }
+
+
+            BoundingPolyhedron BoundingPolyhedron::operator * (const float scale)
+            {
+                BoundingPolyhedron out = *this;
+                for(auto it = out.mVertices.begin(); it!=out.mVertices.end(); ++it)
+                    *it = (*it-mCentre)*scale+mCentre;
+                return out;
+            }
         }
     }
 }
