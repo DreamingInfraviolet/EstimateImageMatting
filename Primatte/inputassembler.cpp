@@ -71,17 +71,6 @@ namespace anima
             END_TIMER(RandomSimplifying);
         }
 
-        cv::Mat InputAssembler::loadMatFromFile(const char* path)
-        {
-            cv::Mat mat;
-            mat = cv::imread(path);
-            if(mat.data==nullptr)
-                throw std::runtime_error("Could not load image data.");
-            mat.convertTo(mat, CV_8UC3);
-
-            return mat;
-        }
-
         InputAssembler::InputAssembler(InputAssemblerDescriptor& desc)
         {
             START_TIMER(ProcessingInput);

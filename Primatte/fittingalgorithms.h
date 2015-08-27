@@ -11,19 +11,26 @@ namespace anima
         namespace primatte
         {
             /** Use exact fitting by trying to move points inside/outside while possible. */
-            class Test2Fitting : public IFittingAlgorithm
+            class StableFitting : public IFittingAlgorithm
             {
+                int mNoOfIterations;
+
+                static unsigned countPointsInside(const std::vector<math::vec3>& points, BoundingPolyhedron& poly);
+
             public:
-                virtual void shrink(BoundingPolyhedron &poly, const std::vector<math::vec3>& points) const;
-                virtual void expand(BoundingPolyhedron& poly, const std::vector<math::vec3>& points) const;
+
+                StableFitting(int numberOfIterations) : mNoOfIterations(numberOfIterations){}
+
+                virtual void shrink(BoundingPolyhedron& poly, const std::vector<math::vec3>& points, math::vec3 backgroundPoint,  float minimumDistance) const;
+                virtual void expand(BoundingPolyhedron& poly, const std::vector<math::vec3>& points, IColourSegmenter* segmenter, math::vec3 backgroundPoint, float startingRadius, float maximumRadius) const;
             }; //End of class
 
             /** Does nothing */
             class NoFitting : public IFittingAlgorithm
             {
             public:
-                virtual void shrink(BoundingPolyhedron& poly, const std::vector<math::vec3>& points) const;
-                virtual void expand(BoundingPolyhedron& poly, const std::vector<math::vec3>& points) const;
+                virtual void shrink(BoundingPolyhedron& poly, const std::vector<math::vec3>& points, math::vec3 backgroundPoint,  float minimumDistance) const {}
+                virtual void expand(BoundingPolyhedron& poly, const std::vector<math::vec3>& points, IColourSegmenter* segmenter, math::vec3 backgroundPoint, float startingRadius, float maximumRadius) const {}
             }; //End of class
         }
     }

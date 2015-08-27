@@ -47,7 +47,7 @@ public:
     void timerEvent(QTimerEvent*);
 
     /* The fitting algorithm to use. */
-    anima::alg::primatte::Test2Fitting fitter;
+    anima::alg::primatte::StableFitting fitter;
 
     /* The segmenter algorithm to use. */
     anima::alg::primatte::DistanceColourSegmenter segmenter;

@@ -13,6 +13,13 @@ namespace anima
     {
         namespace primatte
         {
+        struct SegmenterResult
+        {
+            std::vector<math::vec3> outer;
+            std::vector<math::vec3> inner;
+        };
+
+
             class IColourSegmenter
             {
             public:
@@ -21,7 +28,7 @@ namespace anima
                   * @param background The point around which to find the subset.
                   * @param approximateRadius Loosely-defined cut-off point.
                   */
-                virtual std::vector<math::vec3> segment(const std::vector<math::vec3>& points,
+                virtual SegmenterResult segment(const std::vector<math::vec3>& points,
                                                    const math::vec3 background,
                                                    float approximateRadius) const = 0;
             };

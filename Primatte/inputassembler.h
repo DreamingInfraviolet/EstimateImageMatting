@@ -89,14 +89,6 @@ namespace anima
 
             //Converts from internal colour space to rgb
             cv::Point3f debugGetPointColour(math::vec3 p) const;
-
-            /** Loads a cv::Mat from an image file in rgb format. */
-            static cv::Mat loadMatFromFile(const char *path);
-
-
-            /** Converts the given RGB pixels to hsv. */
-            static void rgbToHsv(cv::Mat* rgb);
-
         };
 
 

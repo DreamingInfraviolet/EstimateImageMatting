@@ -29,6 +29,31 @@ namespace anima
 
     class SpherePolyhedron
     {
+    protected:
+        //The centre of the sphere.
+        math::vec3 mCentre;
+
+        //The number of quads.
+        unsigned mPhiFaces, mThetaFaces;
+
+        //The angles taken up by each quads.
+        float mPhiAngle, mThetaAngle;
+
+        //The radius.
+        float mRadius;
+
+        //The number of vertices in each direction, excluding the poles.
+        unsigned mVerticesPhiCount, mVerticesThetaCount;
+
+        /** Constructs the mesh according to the internal parameters without
+          * scaling or positioning it. */
+        void constructMesh();
+
+
+        /** Returns the vertex at the index phi,theta of the vertex grid.
+          * Can not return poles unless in error. */
+        math::vec3 getPointAtIndex(int phi, int theta) const;
+
     public:
 
         /**
@@ -45,34 +70,6 @@ namespace anima
           */
         static math::vec3 sphericalToCartesian(const math::vec2& spherical);
 
-        //The centre of the sphere.
-        math::vec3 mCentre;
-
-        //The number of quads.
-        unsigned mPhiFaces, mThetaFaces;
-
-        //The angles taken up by each quads.
-        float mPhiAngle, mThetaAngle;
-
-        //The radius.
-        float mRadius;
-
-        //The number of vertices in each direction, excluding the poles.
-        unsigned mVerticesPhiCount, mVerticesThetaCount;
-
-        //Whether the object has already been transformed, which should be done only once.
-        bool mTransformed;
-
-        /** Constructs the mesh according to the internal parameters without
-          * scaling or positioning it. */
-        void constructMesh();
-
-        /** Returns the vertex at the index phi,theta of the vertex grid.
-          * Can not return poles unless in error. */
-        math::vec3 getPointAtIndex(int phi, int theta) const;
-
-
-    public:
 
         //The inner vertices, made public as both read/write access is required.
         //Vertices must only be moved towards or from the origin.
@@ -97,7 +94,7 @@ namespace anima
         float findDistanceToPolyhedron(const math::vec3& normalisedVector) const;
 
 
-        /** Can only be done once. Transforms the polyhedron towards the given centre and radius.
+        /** Transforms the polyhedron towards the given centre and radius.
           * @param centre The new centre.
           * @param radius The new radius. */
         void setCentreAndRadius(const math::vec3 centre, float radius);
@@ -105,6 +102,7 @@ namespace anima
         /** Returns the centre of the object. */
         math::vec3 centre() const { return mCentre; }
 
+        float radius() const {return mRadius; }
     };
 
 }

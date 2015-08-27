@@ -12,6 +12,8 @@ namespace anima
     {
         namespace primatte
         {
+            class IColourSegmenter;
+
             class IFittingAlgorithm
             {
             public:
@@ -21,13 +23,15 @@ namespace anima
                   * @param poly The polyhedron to be shrunk.
                   * @param points The points around which to shrink.
                   */
-                virtual void shrink(BoundingPolyhedron& poly, const std::vector<math::vec3>& points) const = 0;
+                virtual void shrink(BoundingPolyhedron& poly, const std::vector<math::vec3>& points, math::vec3 backgroundPoint,
+                                    float minimumDistance) const = 0;
 
                 /** Fits the polyhedron around the points.
                   * @param poly The polyhedron to be expanded.
                   * @param points The points inside which to expand.
                   */
-                virtual void expand(BoundingPolyhedron& poly, const std::vector<math::vec3>& points) const = 0;
+                virtual void expand(BoundingPolyhedron& poly, const std::vector<math::vec3>& points, IColourSegmenter* segmenter,
+                                     math::vec3 backgroundPoint, float startingRadius, float maximumRadius) const = 0;
             };
         }
     }

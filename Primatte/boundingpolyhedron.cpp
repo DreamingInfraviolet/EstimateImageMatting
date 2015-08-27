@@ -11,7 +11,7 @@ namespace anima
     {
         namespace primatte
         {
-            BoundingPolyhedron::BoundingPolyhedron(BoundingPolyhedronDescriptor desc, const math::vec3 centre)
+            BoundingPolyhedron::BoundingPolyhedron(BoundingPolyhedronDescriptor desc)
                 : SpherePolyhedron(desc.phiFaces, desc.thetaFaces)
             {
                 if(desc.fitter==nullptr)
@@ -19,74 +19,71 @@ namespace anima
 
                 mDesc = desc;
 
-
-
-                mCentre = centre;
                 mInitialised = true;
             }
 
-            void BoundingPolyhedron::positionAround(const std::vector<math::vec3>& points)
+            //Adapted from http://stackoverflow.com/a/24818473
+            std::pair<math::vec3, float> calculateBoundSphere(const std::vector<math::vec3>& vertices)
             {
-                if(!mInitialised)
-                    throw::std::runtime_error("Using uninitialised bounding polyhedron");
+                math::vec3 center = vertices[0];
+                float radius = 0.0001f;
+                float len, alpha, alphaSq;
 
-                float pointRadius = 1;
-                math::vec3 pointCentre;
-
-                if(points.size()!=0)
+                for (int i = 0; i < 2; i++)
                 {
-                    //Find bounding box
-                    float minx = 1,miny = 1,minz = 1,maxx = 0,maxy = 0,maxz = 0;
-
-                    for(auto p = points.begin(); p!=points.end(); ++p)
+                    for (auto it = vertices.begin(); it != vertices.end(); it++)
                     {
-                        minx = std::min(p->x, minx);
-                        miny = std::min(p->y, miny);
-                        minz = std::min(p->z, minz);
-                        maxx = std::max(p->x, maxx);
-                        maxy = std::max(p->y, maxy);
-                        maxz = std::max(p->z, maxz);
+                        math::vec3 pos = *it;
+                        math::vec3 diff = pos - center;
+                        len = diff.length();
+                        if (len > radius)
+                        {
+                            alpha = len / radius;
+                            alphaSq = alpha * alpha;
+                            radius = 0.5f * (alpha + 1 / alpha) * radius;
+                            center =(center * (1 + 1 / alphaSq)+ pos*(1 - 1 / alphaSq)) * 0.5f;
+                        }
                     }
-
-                    float dx = maxx-minx;
-                    float dy = maxy-miny;
-                    float dz = maxz-minz;
-
-                    //Use bounding box to compute centre and radius.
-                    pointRadius = std::max(dx, std::max(dy,dz)) / 2.f;
-                    pointCentre = math::vec3(maxx+minx,maxy+miny,maxz+minz) / 2.f;
                 }
 
-                mRadius = (pointRadius + mCentre.distance(pointCentre))*mDesc.scaleMultiplier;
-                setCentreAndRadius(mCentre, mRadius);
+                for (auto it = vertices.begin(); it != vertices.end(); it++)
+                {
+                    math::vec3 diff = *it - center;
+                    len = diff.length();
+                    if (len > radius)
+                    {
+                        radius = (radius + len) / 2.0f;
+                        center = center + diff * ((len - radius) / len);
+                    }
+                }
+
+                return std::make_pair(center, radius);
             }
 
-            void BoundingPolyhedron::shrink(const std::vector<math::vec3> &points)
+
+            void BoundingPolyhedron::positionAround(const math::vec3 desiredCentre, const std::vector<math::vec3>& points)
             {
-                if(points.size()==0)
-                    return;
                 if(!mInitialised)
                     throw::std::runtime_error("Using uninitialised bounding polyhedron");
-                mDesc.fitter->shrink(*this, points);
-            }
 
-            void BoundingPolyhedron::expand(const std::vector<math::vec3> &points)
-            {
                 if(points.size()==0)
                     return;
-                if(!mInitialised)
-                    throw::std::runtime_error("Using uninitialised bounding polyhedron");
-                mDesc.fitter->expand(*this, points);
-            }
 
+                auto bounding = calculateBoundSphere(points);
+
+                float radius = (bounding.second + desiredCentre.distance(bounding.first))*mDesc.scaleMultiplier;
+                setCentreAndRadius(desiredCentre, radius);
+            }
 
             BoundingPolyhedron BoundingPolyhedron::operator * (const float scale)
             {
                 BoundingPolyhedron out = *this;
                 for(auto it = out.mVertices.begin(); it!=out.mVertices.end(); ++it)
                     *it = (*it-mCentre)*scale+mCentre;
+                out.mRadius *= scale;
                 return out;
             }
+
         }
     }
 }

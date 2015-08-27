@@ -127,11 +127,11 @@ namespace anima
 
     }
 
-    SpherePolyhedron::SpherePolyhedron() :mTransformed(false) {}
+    SpherePolyhedron::SpherePolyhedron() {}
 
     SpherePolyhedron::SpherePolyhedron(unsigned phiFaces, unsigned thetaFaces)
         : mPhiFaces(phiFaces), mThetaFaces(thetaFaces),
-          mPhiAngle(PI2/phiFaces), mThetaAngle(PI/thetaFaces), mRadius(1), mTransformed(false)
+          mPhiAngle(PI2/phiFaces), mThetaAngle(PI/thetaFaces), mRadius(1)
     {
         assert(phiFaces > 3 && thetaFaces > 2);
         constructMesh();
@@ -139,15 +139,8 @@ namespace anima
 
     void SpherePolyhedron::setCentreAndRadius(const math::vec3 centre, float radius)
     {
-        if(mTransformed)
-        {
-            Warning("Setting centre and radius a second time on sphere: transformation applied to non-unit starting mesh. Ignoring.");
-            return;
-        }
-        mTransformed = true;
-
         for(auto it = mVertices.begin(); it!=mVertices.end(); ++it)
-            *it = (*it)*radius + centre;
+            *it = ((*it-mCentre)/mRadius)*radius + centre;
 
         mRadius = radius;
         mCentre = centre;

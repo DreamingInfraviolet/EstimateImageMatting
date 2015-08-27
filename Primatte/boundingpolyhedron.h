@@ -42,23 +42,37 @@ namespace anima
                 BoundingPolyhedron() : mInitialised(false) {}
 
                 /** Constructs the object from the descriptor. */
-                BoundingPolyhedron(BoundingPolyhedronDescriptor desc, const math::vec3 centre);
+                BoundingPolyhedron(BoundingPolyhedronDescriptor desc);
 
                 /** Positions the polyhedral sphere around the points,
                   * only using linear transformations.
                   * @param points The points around which to position the
                                   polyhedron.
                   */
-                void positionAround(const std::vector<math::vec3>& points);
+                void positionAround(const math::vec3 desiredCentre, const std::vector<math::vec3>& points);
 
-                /** Shrinks the sphere around a given set of points. */
-                void shrink(const std::vector<math::vec3>& points);
-
-                /** Expands the sphere beneath a given set of points. */
-                void expand(const std::vector<math::vec3>& points);
+                IFittingAlgorithm* fitter() { return mDesc.fitter; }
 
                 /** Returns a copy of the polyhedron scaled around the centre */
                 BoundingPolyhedron operator * (const float scale);
+
+
+                float findLargestRadius()
+                {
+                    float maxRadiusSquared = 0;
+                    for(size_t i = 0; i < mVertices.size(); ++i)
+                        maxRadiusSquared = std::max(maxRadiusSquared, mVertices[i].distanceSquared(mCentre));
+                    return sqrt(maxRadiusSquared);
+                }
+
+
+                float findSmallestRadius()
+                {
+                    float minRadiusSquared = mVertices.front().distanceSquared(mCentre);
+                    for(size_t i = 1; i < mVertices.size(); ++i)
+                        minRadiusSquared = std::min(minRadiusSquared, mVertices[i].distanceSquared(mCentre));
+                    return sqrt(minRadiusSquared);
+                }
             };
         }
     }

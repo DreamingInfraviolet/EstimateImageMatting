@@ -8,7 +8,8 @@
 
 Application::Application() :
     mInputAssembler(nullptr),
-    mAlgorithm(nullptr) {}
+    mAlgorithm(nullptr),
+    fitter(4) {}
 
 Application::~Application()
 {
@@ -37,11 +38,11 @@ void Application::init()
 
         Inform("Processing input");
 
-        //Load the input mat in RGB format from file.
-        //It is possible to use memory instead.
-        //RGB is not a requirement, but helps in previewing the world.
-        cv::Mat imageMat = InputAssembler::loadMatFromFile("test.bmp");
-        cv::Mat backgroundMat = InputAssembler::loadMatFromFile("test_background.bmp");
+        cv::Mat imageMat = cv::imread("test.jpg");
+        cv::Mat backgroundMat = cv::imread("test_background.jpg");
+        if(imageMat.data==nullptr || backgroundMat.data == nullptr)
+            throw std::runtime_error("Could not load images");
+
 
         START_TIMER(WholeProgramTimer);
         //This descriptor is used to initialise the input assembler.
@@ -64,11 +65,11 @@ void Application::init()
 
         //The 3D grid segment count to use for cleaning up duplicate input
         //points. Lower values require less memory and filter more aggressively.
-        iaDesc.ipd.gridSize = 100;
+        iaDesc.ipd.gridSize = 50;
 
         //Remove % of points randomly after cleanup to speed up computation.
-        iaDesc.ipd.randomSimplify = true;
-        iaDesc.ipd.randomSimplifyPercentage = 50.0;
+        iaDesc.ipd.randomSimplify = false;
+        iaDesc.ipd.randomSimplifyPercentage = 30.0;
 
         //Create the assembler object, load, and process the input.
         //An exception will be thrown in case of an error, most likely
@@ -98,6 +99,29 @@ void Application::init()
         //The alpha locator is responsible for interpolating and generating the alpha.
         algDesc.alphaLocator = &alphaLocator;
 
+        //The parameter passed to the colour segmenter.
+        //The inner background points returned are wrapped around.
+        algDesc.innerShrinkingShreshold = 0.6f;
+
+        //The distance of a shrunken inner vertex from the centre.
+        algDesc.innerShrinkingMinDistance = 0.001f;
+
+        //After shrinking the inner polyhedron is multiplied by this amount.
+        algDesc.innerPostShrinkingMultiplier = 1.f;
+
+        //After the outer polyhedron is wrapped around the foreground points,
+        //It is multiplied by this amount before expansion.
+        algDesc.outerExpansionStartRadiusMultiplier = 0.31f;
+
+        //The approximate amount the outer sphere should try to expand.
+        algDesc.outerExpandDelta = 0.1f;
+
+        //The amount the outer sphere should be scaled after expansion relative to
+        //the inner sphere. It is made so that it never collides with the inner polyhedron,
+        //such that a value of 0 = as close as possible to inner. A value of 1 = minimal scaling.
+        //Note that it is relative to the final size of the inner polyhedron.
+        algDesc.outerScaleParameter = 1.f;
+
         mAlgorithm = new AlgorithmPrimatte(algDesc);
 
         Inform("Analysing input");
@@ -123,7 +147,7 @@ void Application::init()
         cv::Mat af = imageMat;
 
         //The background colour to blend with in BGR format.
-        cv::Vec3f backgroundBlendColour(0,1,0);
+        cv::Vec3f backgroundBlendColour(0,0,1);
         cv::Vec3f backgroundInImage(mInputAssembler->background().x,
                                     mInputAssembler->background().y,
                                     mInputAssembler->background().z);
@@ -182,12 +206,15 @@ void Application::draw()
   glPointSize(5.0);
   glLineWidth(2);
   glBegin(GL_POINTS);
-//  for(auto it = mInputAssembler->backgroundPoints().begin(); it!=mInputAssembler->backgroundPoints().end(); ++it)
-//  {
-//      auto c = mInputAssembler->debugGetPointColour(*it);
-//      glColor3fSRGB(c.z,c.y,c.x);
-//      glVertex3f(it->x, it->y, it->z);
-//  }
+
+  //Background points
+  for(auto it = mInputAssembler->backgroundPoints().begin(); it!=mInputAssembler->backgroundPoints().end(); ++it)
+  {
+      glColor3f(1,0,0);
+      glVertex3f(it->x, it->y, it->z);
+  }
+
+  //Foreground points
   for(auto it = mInputAssembler->points().begin(); it!=mInputAssembler->points().end(); ++it)
   {
       auto c = mInputAssembler->debugGetPointColour(*it);

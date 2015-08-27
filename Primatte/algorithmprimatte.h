@@ -34,6 +34,33 @@ namespace anima
 
                 /* The bounding polyhebescriptor. */
                 BoundingPolyhedronDescriptor boundingPolyhedronDesc;
+
+
+                //Parameters
+
+                //The parameter passed to the colour segmenter.
+                //The inner background points returned are wrapped around.
+                float innerShrinkingShreshold;
+
+                //The distance of a shrunken inner vertex from the centre.
+                float innerShrinkingMinDistance;
+
+                //After shrinking the inner polyhedron is multiplied by this amount.
+                float innerPostShrinkingMultiplier;
+
+                //After the outer polyhedron is wrapped around the foreground points,
+                //It is multiplied by this amount before expansion.
+                float outerExpansionStartRadiusMultiplier;
+
+                //The approximate amount the outer sphere should try to expand.
+                float outerExpandDelta;
+
+                //The amount the outer sphere should be scaled after expansion relative to
+                //the inner sphere. It is made so that it never collides with the inner polyhedron,
+                //such that a value of 0 = as close as possible to inner. A value of 1 = minimal scaling.
+                //Note that it is relative to the final size of the inner polyhedron.
+                float outerScaleParameter;
+
             };
 
             /** The primatte-inspired algorithm. */
