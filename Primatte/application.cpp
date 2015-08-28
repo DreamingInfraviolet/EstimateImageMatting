@@ -40,12 +40,18 @@ void Application::init()
         using namespace anima::ia;
         using namespace anima::alg::primatte;
 
-
         //Restore QGLPreviewer state from last run, such as camera position, etc.
         restoreStateFromFile();
 
         //A scene radius of 1 has some clipping.
         this->setSceneRadius(1.5);
+
+        //This makes things difficult to see and interferes with the pixel colours.
+        glDisable(GL_LIGHTING);
+
+        //Set fps (update every n milliseconds). 16.66... ~ 60fps
+        mBasicTimer.start(16.66666666, this);
+
 
         Inform("Processing input");
 
@@ -106,14 +112,14 @@ void Application::init()
            to perform, akin to a binary search algorithm iteration.
            2 is a good number, as it's both accurate and doesn't fit TOO closely, which
            can lead to errors due to the sample points being simplified. */
-        mFitter = new anima::alg::primatte::StableFitting(2);
+        mFitter = new StableFitting(2);
 
         /* The segmenter algorithm to use. It splits the data points in two based on the parameters.
            The distance segmenter splits the input based on whether a point is inside/outside a sphere. */
-        mSegmenter = new anima::alg::primatte::DistanceColourSegmenter();
+        mSegmenter = new DistanceColourSegmenter();
 
         /* The alpha interpolation algorithm to use. It is used to compute the alpha for each pixel. */
-        mAlphaLocator = new anima::alg::primatte::AlphaRayLocator();
+        mAlphaLocator = new AlphaRayLocator();
 
         //Fill in the algorithm descriptor.
         AlgorithmPrimatteDesc algDesc;
@@ -204,7 +210,7 @@ void Application::init()
                 cv::Vec3f originalf = original;
                 originalf *= 1/255.f;
 
-                //get foreground colour
+                //Cancel out original background colour from guessed alpha
                 cv::Vec3f foreground = (originalf - backgroundInImage*(1 - alpha))*(alpha);
 
                 original = (foreground*alpha + backgroundBlendColour*(1.f-alpha))*255;
@@ -212,13 +218,6 @@ void Application::init()
 
         cv::namedWindow( "AF", cv::WINDOW_AUTOSIZE );
         cv::imshow( "AF", af );
-
-        //This makes things difficult to see and interferes with the pixel colours.
-        glDisable(GL_LIGHTING);
-
-        //Set fps (update every n milliseconds). 16.66... ~ 60fps
-        mBasicTimer.start(16.66666666, this);
-
     }
     catch(std::runtime_error err)
     {
@@ -235,6 +234,10 @@ void Application::init()
         this->close();
     }
 }
+
+//////////////////////////////////////////////////////////////////////////////
+/////////////////Below this, it's just for 3D previewing. ////////////////////
+//////////////////////////////////////////////////////////////////////////////
 
 /** This function takes in a normalised colour in linear colourspace and
     calls glColour3f with its gamma-corrected version. */
