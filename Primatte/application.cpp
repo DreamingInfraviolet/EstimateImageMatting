@@ -73,8 +73,7 @@ void Application::init()
         //This descriptor is used to initialise the input assembler.
         InputAssemblerDescriptor iaDesc;
 
-        iaDesc.backgroundSource = &backgroundMat;
-
+        //Set the background colour locator
         iaDesc.backgroundLocator = mBackgroundLocator;
 
         //Set the image source to be copied from.
@@ -82,6 +81,9 @@ void Application::init()
         //8-bit, 16-bit and floating point formats are supported.
         //Expects a 3-component image.
         iaDesc.foregroundSource = &imageMat;
+
+        //The background image.
+        iaDesc.backgroundSource = &backgroundMat;
 
         //The 3D grid segment count to use for cleaning up duplicate input
         //points. Lower values require less memory and filter more aggressively.
