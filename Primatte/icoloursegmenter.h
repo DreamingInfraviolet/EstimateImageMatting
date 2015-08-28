@@ -15,8 +15,13 @@ namespace anima
         {
         struct SegmenterResult
         {
+            //The points chosen to be outside.
             std::vector<math::vec3> outer;
+
+            //The points chosen to be inside.
             std::vector<math::vec3> inner;
+
+            //The union of these two constitutes the input points to the segmenter.
         };
 
 

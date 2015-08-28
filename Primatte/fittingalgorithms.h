@@ -10,11 +10,16 @@ namespace anima
     {
         namespace primatte
         {
-            /** Use exact fitting by trying to move points inside/outside while possible. */
+            /** Use exact fitting by trying to move points inside/outside while possible.
+                Points are guaranteed to not go through the polyhedron.
+                An alternative to try out might be to allow for a certain number of points to be ignored,
+                reducing outlier effect. */
             class StableFitting : public IFittingAlgorithm
             {
+                //Number of iterations to perform.
                 int mNoOfIterations;
 
+                /** Counts the number of points from the points vector that are inside the bounding polyhedron. */
                 static unsigned countPointsInside(const std::vector<math::vec3>& points, BoundingPolyhedron& poly);
 
             public:
