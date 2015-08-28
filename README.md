@@ -1,3 +1,5 @@
+![Example](Example.png)
+
 The second part of my 2015 summer internship, this algorithm removes
 the background of an image using a Primatte-inspired algorithm.
 
