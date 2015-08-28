@@ -20,7 +20,7 @@ namespace anima
                 /* The number of horizontal faces to have. Must be > 2 */
                 int thetaFaces;
 
-                /* The polyhedron is scaled by this factor after being positioned. */
+                /* The polyhedron is scaled by this factor after being positioned. Must be positive. */
                 float scaleMultiplier;
 
                 /* The fitting algorithm to use to fit the polyhedron around the points. */
@@ -55,24 +55,6 @@ namespace anima
 
                 /** Returns a copy of the polyhedron scaled around the centre */
                 BoundingPolyhedron operator * (const float scale);
-
-
-                float findLargestRadius()
-                {
-                    float maxRadiusSquared = 0;
-                    for(size_t i = 0; i < mVertices.size(); ++i)
-                        maxRadiusSquared = std::max(maxRadiusSquared, mVertices[i].distanceSquared(mCentre));
-                    return sqrt(maxRadiusSquared);
-                }
-
-
-                float findSmallestRadius()
-                {
-                    float minRadiusSquared = mVertices.front().distanceSquared(mCentre);
-                    for(size_t i = 1; i < mVertices.size(); ++i)
-                        minRadiusSquared = std::min(minRadiusSquared, mVertices[i].distanceSquared(mCentre));
-                    return sqrt(minRadiusSquared);
-                }
             };
         }
     }

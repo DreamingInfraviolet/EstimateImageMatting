@@ -68,6 +68,10 @@ namespace anima
             std::vector<math::vec3> mPoints, mBackgroundPoints;
             math::vec3 mBackground;
             InputAssemblerDescriptor::TargetColourspace mColourSpace;
+
+            /** Returns the normalisation multiplier for a CV code
+                CV_8UC3, CV_UC16C3 and CV_32FC3 supported.*/
+            static float normalisationMultiplier(int cvCode);
         public:
 
             /** Initialises the input, throwing an exception if failed. */
@@ -76,10 +80,8 @@ namespace anima
             /** Returns the internal points. */
             const std::vector<math::vec3>& points() const;
 
-            const std::vector<math::vec3>& backgroundPoints() const
-            {
-                return mBackgroundPoints;
-            }
+            /** Returns the background points. */
+            const std::vector<math::vec3>& backgroundPoints() const;
 
             /** Returns the internal floating point image. */
             const cv::Mat& mat() const;

@@ -3,16 +3,27 @@
 #include "application.h"
 #include "matrixd.h"
 #include "algorithmprimatte.h"
+#include "fittingalgorithms.h"
+#include "averagebackgroundcolourlocators.h"
+#include "coloursegmenters.h"
+#include "alphalocator.h"
 #include "io.h"
 
 
 Application::Application() :
     mInputAssembler(nullptr),
     mAlgorithm(nullptr),
-    fitter(4) {}
+    mFitter(nullptr),
+    mSegmenter(nullptr),
+    mAlphaLocator(nullptr),
+    mBackgroundLocator(nullptr) {}
 
 Application::~Application()
 {
+    delete mBackgroundLocator;
+    delete mAlphaLocator;
+    delete mSegmenter;
+    delete mFitter;
     delete mAlgorithm;
     delete mInputAssembler;
 }
@@ -21,7 +32,7 @@ void Application::timerEvent(QTimerEvent*)
 {
     update();
 }
-
+cv::Mat imageMat;
 void Application::init()
 {
     try
@@ -38,34 +49,42 @@ void Application::init()
 
         Inform("Processing input");
 
-        cv::Mat imageMat = cv::imread("test.jpg");
+        imageMat = cv::imread("test.jpg");
         cv::Mat backgroundMat = cv::imread("test_background.jpg");
         if(imageMat.data==nullptr || backgroundMat.data == nullptr)
             throw std::runtime_error("Could not load images");
 
 
         START_TIMER(WholeProgramTimer);
+
+        ////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////// Input Stage /////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////
+
+        /* Locates the dominant background colour from the input background image mat. */
+        mBackgroundLocator = new anima::ia::ABCL_BarycentreBased();
+
         //This descriptor is used to initialise the input assembler.
         InputAssemblerDescriptor iaDesc;
 
         iaDesc.backgroundSource = &backgroundMat;
 
-        iaDesc.backgroundLocator = &backgroundLocator;
+        iaDesc.backgroundLocator = mBackgroundLocator;
 
         //Set the image source to be copied from.
-        //The source mat is converted into floating point rgb values.
+        //The source mat is converted into floating point values.
         //8-bit, 16-bit and floating point formats are supported.
         //Expects a 3-component image.
         iaDesc.foregroundSource = &imageMat;
+
+        //The 3D grid segment count to use for cleaning up duplicate input
+        //points. Lower values require less memory and filter more aggressively.
+        iaDesc.ipd.gridSize = 400;
 
         //The target colour space to convert to.
         //Currently can either be RGB, HSV or LAB.
         //HSV is unsuitable for blue due to wrap-around!
         iaDesc.targetColourspace = InputAssemblerDescriptor::ETCS_RGB;
-
-        //The 3D grid segment count to use for cleaning up duplicate input
-        //points. Lower values require less memory and filter more aggressively.
-        iaDesc.ipd.gridSize = 50;
 
         //Remove % of points randomly after cleanup to speed up computation.
         iaDesc.ipd.randomSimplify = false;
@@ -76,13 +95,31 @@ void Application::init()
         //a std::runtime_error.
         mInputAssembler = new InputAssembler(iaDesc);
 
+        ////////////////////////////////////////////////////////////////////////////
+        //////////////////////////// Algorithm Stage ///////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////
         Inform("Creating primatte algorithm");
+
+        //Choose your algorithms:
+
+        /* The fitting algorithm to use. The input is the number of binary iterations
+           to perform, akin to a binary search algorithm iteration.
+           2 is a good number, as it's both accurate and doesn't fit TOO closely, which
+           can lead to errors due to the sample points being simplified. */
+        mFitter = new anima::alg::primatte::StableFitting(2);
+
+        /* The segmenter algorithm to use. It splits the data points in two based on the parameters.
+           The distance segmenter splits the input based on whether a point is inside/outside a sphere. */
+        mSegmenter = new anima::alg::primatte::DistanceColourSegmenter();
+
+        /* The alpha interpolation algorithm to use. It is used to compute the alpha for each pixel. */
+        mAlphaLocator = new anima::alg::primatte::AlphaRayLocator();
 
         //Fill in the algorithm descriptor.
         AlgorithmPrimatteDesc algDesc;
 
         //The fitter algorithm to use.
-        algDesc.boundingPolyhedronDesc.fitter = &fitter;
+        algDesc.boundingPolyhedronDesc.fitter = mFitter;
 
         //The number of phi and theta faces for the generated sphere.
         //Optimally, there is a ration of 2:1. 16*8 is a 128-faced sphere.
@@ -94,27 +131,27 @@ void Application::init()
         algDesc.boundingPolyhedronDesc.scaleMultiplier = 1.2f;
 
         //The segmenter splits the points into outer and inner points.
-        algDesc.segmenter = &segmenter;
+        algDesc.segmenter = mSegmenter;
 
         //The alpha locator is responsible for interpolating and generating the alpha.
-        algDesc.alphaLocator = &alphaLocator;
+        algDesc.alphaLocator = mAlphaLocator;
 
         //The parameter passed to the colour segmenter.
         //The inner background points returned are wrapped around.
-        algDesc.innerShrinkingShreshold = 0.6f;
+        algDesc.innerShrinkingThreshold = 0.6f;
 
         //The distance of a shrunken inner vertex from the centre.
         algDesc.innerShrinkingMinDistance = 0.001f;
 
         //After shrinking the inner polyhedron is multiplied by this amount.
-        algDesc.innerPostShrinkingMultiplier = 1.f;
+        algDesc.innerPostShrinkingMultiplier = 1.1f;
 
-        //After the outer polyhedron is wrapped around the foreground points,
-        //It is multiplied by this amount before expansion.
-        algDesc.outerExpansionStartRadiusMultiplier = 0.31f;
+        //Passed to the segmenter when positioning outer sphere around inner points before expanding.
+        //Essentially the start radius of the outer sphere.
+        algDesc.outerExpansionStartThreshold = 0.15f;
 
         //The approximate amount the outer sphere should try to expand.
-        algDesc.outerExpandDelta = 0.1f;
+        algDesc.outerExpandDelta = 0.075f;
 
         //The amount the outer sphere should be scaled after expansion relative to
         //the inner sphere. It is made so that it never collides with the inner polyhedron,
@@ -132,19 +169,26 @@ void Application::init()
         //In primatte this corresponds to polyhedron deformation.
         mAlgorithm->analyse();
 
+
+        ////////////////////////////////////////////////////////////////////////////
+        ///////////////////////// Get and preview result ///////////////////////////
+        ////////////////////////////////////////////////////////////////////////////
+
+
         Inform("Applying results");
-
-
         //Apply the polyhedrae to the input image, and save the alpha to result.
         cv::Mat result = mAlgorithm->computeAlphas();
 
         END_TIMER(WholeProgramTimer);
+
+        //Note: This is not part of the algorithm. It's just to preview the result.
+
         //Display the alpha image
         cv::namedWindow("Alpha", cv::WINDOW_AUTOSIZE);
         cv::imshow("Alpha", result);
 
         //Apply the alpha to the original image in order to preview it.
-        cv::Mat af = imageMat;
+        cv::Mat af = imageMat.clone();
 
         //The background colour to blend with in BGR format.
         cv::Vec3f backgroundBlendColour(0,0,1);
@@ -180,12 +224,14 @@ void Application::init()
     {
         //If a known error has occured:
         Error(err.what());
+        this->hide();
         this->close();
     }
     catch(...)
     {
         //If an unknown exception happened:
         Error("Something happened");
+        this->hide();
         this->close();
     }
 }
@@ -197,9 +243,11 @@ void glColor3fSRGB(float x, float y, float z)
     glColor3f(pow(x,2.2f),pow(y,2.2f),pow(z,2.2f));
 }
 
-
 void Application::draw()
 {
+    if(this->isHidden())
+        return;
+
   drawBackground();
 
   //Draw points
@@ -218,7 +266,10 @@ void Application::draw()
   for(auto it = mInputAssembler->points().begin(); it!=mInputAssembler->points().end(); ++it)
   {
       auto c = mInputAssembler->debugGetPointColour(*it);
-      glColor3fSRGB(c.z,c.y,c.x);
+
+      //Swap components because the internal image is in BGR
+      glColor3fSRGB(c.x,c.y,c.z);
+
       glVertex3f(it->x, it->y, it->z);
   }
   glEnd();

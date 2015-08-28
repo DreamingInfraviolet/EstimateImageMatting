@@ -5,7 +5,9 @@
 
 /** This class implements an algorithm inspired by primatte.
     Its main purpose is to combine all the other algorithms in the
-    primatte namespace and provide a single interface. */
+    primatte namespace and provide a single interface.
+    In it's current form, it's potentially a little unstable as I did not have the time
+    (or the images) to test it fully. But it seems to work! */
 namespace anima
 {
     //Forward declaration.
@@ -23,34 +25,40 @@ namespace anima
             class IColourSegmenter;
             class IAlphaLocator;
 
-            /** The algorithm descriptor to use when creating the algorithm. */
+            /** The algorithm descriptor to use when creating the algorithm.
+                You must fill this in entirely and pass it to the constructor. */
             struct AlgorithmPrimatteDesc
             {
+                //The following specify sub-algorithms to be used.
+
                 /* The algorithm to use to group clusters of points together. */
                 IColourSegmenter* segmenter;
 
                 /* The locator used for alpha generation. */
                 IAlphaLocator* alphaLocator;
 
-                /* The bounding polyhebescriptor. */
+                /* The bounding polyhedron descriptor. */
                 BoundingPolyhedronDescriptor boundingPolyhedronDesc;
 
+                //The following values specify the parameters used by the algorithm.
 
-                //Parameters
+                //The parameter passed to the colour segmenter when segmenting the background
+                //points for the inner polyhedron. The segmenter splits the points into Inner
+                //and Outer, and the Inner points are wrapped around. Should be the approximate
+                //radius of the sphere inside which the points should be marked as Inner,
+                //but may be different if you use your own segmenter.
+                float innerShrinkingThreshold;
 
-                //The parameter passed to the colour segmenter.
-                //The inner background points returned are wrapped around.
-                float innerShrinkingShreshold;
-
-                //The distance of a shrunken inner vertex from the centre.
+                //The minimum size of the inner polyhedron after shrinking.
+                //Values that are too low may yield in parts of the background being visible.
                 float innerShrinkingMinDistance;
 
-                //After shrinking the inner polyhedron is multiplied by this amount.
+                //After shrinking, the inner polyhedron is scaled by this amount.
                 float innerPostShrinkingMultiplier;
 
-                //After the outer polyhedron is wrapped around the foreground points,
-                //It is multiplied by this amount before expansion.
-                float outerExpansionStartRadiusMultiplier;
+                //The foreground pixels are then segmented based on this parameter,
+                //And the outer polyhedron is positioned around them before expansion.
+                float outerExpansionStartThreshold;
 
                 //The approximate amount the outer sphere should try to expand.
                 float outerExpandDelta;
@@ -76,6 +84,8 @@ namespace anima
 
                 /* The algorithm descriptor. */
                 AlgorithmPrimatteDesc mDesc;
+
+                bool mAnalysed;
 
             public:
 

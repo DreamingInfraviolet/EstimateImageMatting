@@ -17,7 +17,7 @@ namespace anima
                 const size_t polyhedronCount,
                 const ia::InputAssembler& input) const
             {
-                assert(polyhedronCount==2);
+                assert(polyhedronCount>1);
                 START_TIMER(AlphaLocator);
 
                 const cv::Mat& mat = input.mat();

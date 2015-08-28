@@ -17,7 +17,7 @@ namespace anima
         public:
 
             /** Trivial virtual destructor */
-            virtual ~IAlgorithm(){}
+            virtual ~IAlgorithm() {}
 
             /** Sets the current input. */
             virtual void setInput(const ia::InputAssembler* input)

@@ -99,7 +99,7 @@ namespace anima
                 for(int iIteration = 0; iIteration < mNoOfIterations; ++iIteration)
                 {
                     //Try moving each vertex outwards
-                    for(int iVertex = 0; iVertex < newPoly.mVertices.size(); ++iVertex)
+                    for(size_t iVertex = 0; iVertex < newPoly.mVertices.size(); ++iVertex)
                     {
                         //Find movement vector
                         math::vec3 moveNormal = (newPoly.mVertices[iVertex]-newPoly.centre()).normalize();
@@ -123,28 +123,25 @@ namespace anima
                     step *= 0.5f;
                 }
 
-
                 //The idea here is that if a vertex did not encounter any resistance while moving,
-                //Move it by the average movement of the vertices that _did_ encounter resistance.
+                //Move it by the maximin movement of the vertices that _did_ encounter resistance.
 
-                //Find average movement of vertices that found resistance:
-                float averageMovement = 0.f;
-                int divisor = 0;
-                for(int i = 0; i < didVertexEncounterResistance.size(); ++i)
-                    if(didVertexEncounterResistance[i])
-                    {
-                        averageMovement += poly.mVertices[i].distance(newPoly.mVertices[i]);
-                        ++divisor;
-                    }
+                //You might try replacing maximum with mode, etc. (mean gave really low deltas)
 
-                averageMovement/=float(divisor);
+                //Find max movement of vertices that found resistance:
+                float maxMovement = poly.mVertices[0].distance(newPoly.mVertices[0]);
+                for(size_t i = 1; i < didVertexEncounterResistance.size(); ++i)
+                        maxMovement = std::max(maxMovement,
+                                               poly.mVertices[i].distance(newPoly.mVertices[i]));
+
+
 
                 //If a vertex found resistance, keep it. Otherwise, restore it and move by the average.
-                for(int i = 0; i < didVertexEncounterResistance.size(); ++i)
+                for(size_t i = 0; i < didVertexEncounterResistance.size(); ++i)
                     if(didVertexEncounterResistance[i])
                         poly.mVertices[i] = newPoly.mVertices[i];
                 else
-                        poly.mVertices[i] = poly.mVertices[i]+(newPoly.mVertices[i]-poly.mVertices[i]).normalize()*averageMovement;
+                        poly.mVertices[i] = poly.mVertices[i]+(newPoly.mVertices[i]-poly.mVertices[i]).normalize()*maxMovement;
 
                 END_TIMER(Expanding);
             }

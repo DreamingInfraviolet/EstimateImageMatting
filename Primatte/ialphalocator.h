@@ -19,6 +19,9 @@ namespace anima
             class IAlphaLocator
             {
             public:
+
+                virtual ~IAlphaLocator(){}
+
                 /** Calculates the alpha for a set of points.
                   * @param polyhedrons The polyhedrons usd by primatte
                                        ordered from inner to outer.

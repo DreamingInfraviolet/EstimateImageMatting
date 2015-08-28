@@ -4,7 +4,7 @@
 
 /** An interface defining the functionality needed by an algorithm that
   * fits a polyhedron (that's assumed to be around the points) tightly
-  * on per-vertex granularity (aka, shrinking the sphere).
+  * around some points.
   */
 namespace anima
 {

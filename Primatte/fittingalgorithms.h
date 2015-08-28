@@ -29,8 +29,8 @@ namespace anima
             class NoFitting : public IFittingAlgorithm
             {
             public:
-                virtual void shrink(BoundingPolyhedron& poly, const std::vector<math::vec3>& points, math::vec3 backgroundPoint,  float minimumDistance) const {}
-                virtual void expand(BoundingPolyhedron& poly, const std::vector<math::vec3>& points, IColourSegmenter* segmenter, math::vec3 backgroundPoint, float startingRadius, float maximumRadius) const {}
+                virtual void shrink(BoundingPolyhedron&, const std::vector<math::vec3>&, math::vec3,  float) const {}
+                virtual void expand(BoundingPolyhedron&, const std::vector<math::vec3>&, IColourSegmenter*, math::vec3, float, float) const {}
             }; //End of class
         }
     }

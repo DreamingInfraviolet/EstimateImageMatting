@@ -28,10 +28,12 @@ namespace anima
                 throw std::runtime_error("Unable to allocate 3D grid for input processing");
 
             for (unsigned i = 0; i < r; ++i)
+            {
+                float* data = (float*)(mat.data + mat.step*i);
                 for(unsigned j = 0; j < c; ++j)
                 {
-                    cv::Point3f p = mat.at<cv::Point3f>(i,j);
-                    cv::Point3i pi = p*(int)gridSize;
+                    math::vec3& p = *((math::vec3*)(data + j*3));
+                    math::vec3i pi(p.x*gridSize,p.y*gridSize,p.z*gridSize);
                     if(unsigned(pi.x) >= gridSize)
                         pi.x = gridSizeMinusOne;
                     if(unsigned(pi.y) >= gridSize)
@@ -43,9 +45,10 @@ namespace anima
                     if (!b)
                     {
                         b = true;
-                        points.push_back(math::vec3(p.x, p.y, p.z));
+                        points.push_back(p);
                     }
                 }
+            }
 
             delete[] grid;
 
@@ -71,6 +74,22 @@ namespace anima
             END_TIMER(RandomSimplifying);
         }
 
+        float InputAssembler::normalisationMultiplier(int cvCode)
+        {
+            switch(cvCode)
+            {
+            case CV_8UC3:
+                return 1.0/255.0;
+            case CV_16UC3:
+                return 1.0/65535.0;
+            case CV_32FC3:
+                return 1.0;
+            default:
+                throw std::runtime_error("Unknown format in input assember at line " + ToString(__LINE__));
+            }
+            assert(0);
+        }
+
         InputAssembler::InputAssembler(InputAssemblerDescriptor& desc)
         {
             START_TIMER(ProcessingInput);
@@ -90,45 +109,16 @@ namespace anima
             if(desc.foregroundSource->cols*desc.foregroundSource->rows==0)
                 throw std::runtime_error("Empty foreground source.");
 
-
             if(desc.backgroundSource->cols*desc.backgroundSource->rows==0)
                 throw std::runtime_error("Empty background source.");
 
 
-            double foregroundMultiplier, backgroundMultiplier;
-            switch(desc.foregroundSource->type())
-            {
-            case CV_8UC3:
-                foregroundMultiplier = 1.0/255.0;
-                break;
-            case CV_16UC3:
-                foregroundMultiplier = 1.0/65535.0;
-                break;
-            case CV_32FC3:
-                foregroundMultiplier = 1.0;
-                break;
-            default:
-                throw std::runtime_error("Unknown format in input assember at line " + ToString(__LINE__));
-            }
-            switch(desc.backgroundSource->type())
-            {
-            case CV_8UC3:
-                backgroundMultiplier = 1.0/255.0;
-                break;
-            case CV_16UC3:
-                backgroundMultiplier = 1.0/65535.0;
-                break;
-            case CV_32FC3:
-                backgroundMultiplier = 1.0;
-                break;
-            default:
-                throw std::runtime_error("Unknown format in input assember at line " + ToString(__LINE__));
-            }
+            desc.foregroundSource->convertTo(mForegroundF, CV_32FC3,
+                                             normalisationMultiplier(desc.foregroundSource->type()));
+            desc.backgroundSource->convertTo(mBackgroundF, CV_32FC3,
+                                             normalisationMultiplier(desc.backgroundSource->type()));
 
-            desc.foregroundSource->convertTo(mForegroundF, CV_32FC3, foregroundMultiplier);
-            desc.backgroundSource->convertTo(mBackgroundF, CV_32FC3, backgroundMultiplier);
-
-            //Convert to appropriate colour space (including background pixel):
+            //Convert everything to the appropriate colour space:
             mColourSpace = desc.targetColourspace;
 
             switch(desc.targetColourspace)
@@ -140,39 +130,53 @@ namespace anima
                 cv::cvtColor(mBackgroundF, mBackgroundF, CV_RGB2HSV);
 
                 //Normalise hue:
-                for(int y = 0; y < mForegroundF.cols; ++y)
-                    for(int x = 0; x < mForegroundF.rows; ++x)
-                        mForegroundF.at<cv::Point3f>(x,y).x/=360.f;
-
-                for(int y = 0; y < mBackgroundF.cols; ++y)
-                    for(int x = 0; x < mBackgroundF.rows; ++x)
-                        mBackgroundF.at<cv::Point3f>(x,y).x/=360.f;
+                for (int i = 0; i < mForegroundF.rows; ++i)
+                {
+                    float* data = (float*)(mForegroundF.data + mForegroundF.step*i);
+                    for(int j = 0; j < mForegroundF.cols; ++j)
+                        *(data + j*3)/=360.f;
+                }
+                for (int i = 0; i < mBackgroundF.rows; ++i)
+                {
+                    float* data = (float*)(mBackgroundF.data + mBackgroundF.step*i);
+                    for(int j = 0; j < mBackgroundF.cols; ++j)
+                        *(data + j*3)/=360.f;
+                }
                 break;
             case InputAssemblerDescriptor::ETCS_LAB:
                 cv::cvtColor(mForegroundF, mForegroundF, CV_RGB2Lab);
                 cv::cvtColor(mBackgroundF, mBackgroundF, CV_RGB2Lab);
 
-                for(int y = 0; y < mForegroundF.cols; ++y)
-                    for(int x = 0; x < mForegroundF.rows; ++x)
+                //Get into proper range
+                for (int i = 0; i < mForegroundF.rows; ++i)
+                {
+                    float* data = (float*)(mForegroundF.data + mForegroundF.step*i);
+                    for(int j = 0; j < mForegroundF.cols; ++j)
                     {
-                        cv::Point3f& p = mForegroundF.at<cv::Point3f>(x,y);
-                        p = cv::Point3f(p.x/254.f, (p.y+127.f)/254.f, (p.z+127.f)/254.f);
+                        math::vec3& p = *((math::vec3*)(data + j*3));
+                        p = math::vec3(p.x, (p.y+127.f), (p.z+127.f))/254.f;
                     }
-                for(int y = 0; y < mBackgroundF.cols; ++y)
-                    for(int x = 0; x < mBackgroundF.rows; ++x)
+                }
+                for (int i = 0; i < mBackgroundF.rows; ++i)
+                {
+                    float* data = (float*)(mBackgroundF.data + mBackgroundF.step*i);
+                    for(int j = 0; j < mBackgroundF.cols; ++j)
                     {
-                        cv::Point3f& p = mBackgroundF.at<cv::Point3f>(x,y);
-                        p = cv::Point3f(p.x/254.f, (p.y+127.f)/254.f, (p.z+127.f)/254.f);
+                        math::vec3& p = *((math::vec3*)(data + j*3));
+                        p = math::vec3(p.x, (p.y+127.f), (p.z+127.f))/254.f;
                     }
+                }
                 break;
             }
 
+            //Convert mat to vector, and clean:
             mPoints = RemoveDuplicatesWithGrid(mForegroundF, desc.ipd.gridSize);
             mBackgroundPoints = RemoveDuplicatesWithGrid(mBackgroundF, desc.ipd.gridSize);
 
+            //Find dominant background colour:
             mBackground = desc.backgroundLocator->findColour(mBackgroundF);
 
-
+            //Simplify randomly if needed:
             if(desc.ipd.randomSimplify)
             {
                 RandomSimplify(&mPoints, desc.ipd.randomSimplifyPercentage);
@@ -192,7 +196,7 @@ namespace anima
             {
                 p.x *= 360.f;
                 cv::Mat mat(1,1,CV_32FC3, &p.x);
-                cv::cvtColor(mat, mat, CV_HSV2RGB);
+                cv::cvtColor(mat, mat, CV_HSV2BGR);
             }
                 break;
             case InputAssemblerDescriptor::ETCS_LAB:
@@ -202,17 +206,22 @@ namespace anima
                                 p.z*254.f - 127.f);
 
                 cv::Mat mat(1,1,CV_32FC3, &p.x);
-                cv::cvtColor(mat, mat, CV_Lab2RGB);
+                cv::cvtColor(mat, mat, CV_Lab2BGR);
             }
                 break;
             default:
                 assert(0);
             }
 
-            return cv::Point3f(p.x,p.y,p.z);
+            return cv::Point3f(p.z,p.y,p.x);
         }
 
-        const std::vector<math::vec3> &InputAssembler::points() const
+        const std::vector<math::vec3>& InputAssembler::backgroundPoints() const
+        {
+            return mBackgroundPoints;
+        }
+
+        const std::vector<math::vec3>& InputAssembler::points() const
         {
             return mPoints;
         }

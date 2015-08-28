@@ -17,6 +17,9 @@ namespace anima
                 if(desc.fitter==nullptr)
                     throw std::runtime_error("Null fitter");
 
+                if(desc.scaleMultiplier < 0)
+                    throw std::runtime_error("Negative bounding polyhedron scale multiplier");
+
                 mDesc = desc;
 
                 mInitialised = true;

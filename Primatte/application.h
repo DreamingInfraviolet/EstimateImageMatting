@@ -1,13 +1,27 @@
 #pragma once
 #include <QGLViewer/qglviewer.h>
 #include <qtimer.h>
-#include "inputassembler.h"
-#include "coloursegmenters.h"
-#include "fittingalgorithms.h"
-#include "alphalocator.h"
-#include "averagebackgroundcolourlocators.h"
 
-namespace anima { namespace alg { class IAlgorithm; } }
+//Forward declarations
+namespace anima
+{
+    namespace alg
+    {
+        class IAlgorithm;
+
+        namespace primatte
+        {
+            class IColourSegmenter;
+            class IFittingAlgorithm;
+            class IAlphaLocator;
+        }
+    }
+    namespace ia
+    {
+        class InputAssembler;
+        class IAverageBackgroundColourLocator;
+    }
+}
 
 /** The main application class. It is to be replaced in the future by a proper
   * driver. Currently it reads the input from a file called "test.bmp" and
@@ -40,20 +54,24 @@ public:
     /* The currently used algorithm (only primatte available). */
     anima::alg::IAlgorithm* mAlgorithm;
 
+    //Subalgorithms:
+
+    /* The fitting algorithm to use. */
+    anima::alg::primatte::IFittingAlgorithm* mFitter;
+
+    /* The segmenter algorithm to use. */
+    anima::alg::primatte::IColourSegmenter* mSegmenter;
+
+    /* The alpha interpolation algorithm to use. */
+    anima::alg::primatte::IAlphaLocator* mAlphaLocator;
+
+    /* Finds the dominant background colour. */
+    anima::ia::IAverageBackgroundColourLocator* mBackgroundLocator;
+
     /* Handles debug preview fps. */
     QBasicTimer mBasicTimer;
 
     /** Called on every timer tick: updates the frame. */
     void timerEvent(QTimerEvent*);
 
-    /* The fitting algorithm to use. */
-    anima::alg::primatte::StableFitting fitter;
-
-    /* The segmenter algorithm to use. */
-    anima::alg::primatte::DistanceColourSegmenter segmenter;
-
-    /* The alpha interpolation algorithm to use. */
-    anima::alg::primatte::AlphaRayLocator alphaLocator;
-
-    anima::ia::ABCL_BarycentreBased backgroundLocator;
 };

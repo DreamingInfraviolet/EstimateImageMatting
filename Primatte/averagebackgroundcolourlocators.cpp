@@ -11,11 +11,11 @@ namespace anima
 
             math::vec3 background;
 
-            for (unsigned i = 0; i < r; ++i)
+            for (int i = 0; i < r; ++i)
             {
                 float* data = (float*)(mat.data + s*i);
 
-                for(unsigned j = 0; j < c; ++j)
+                for(int j = 0; j < c; ++j)
                 {
                     math::vec3& v = *((math::vec3*)(data + j*3));
                     background+=v;

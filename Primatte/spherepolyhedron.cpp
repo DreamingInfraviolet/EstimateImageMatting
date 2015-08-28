@@ -149,6 +149,9 @@ namespace anima
 
     void SpherePolyhedron::debugDraw(math::vec3 colour) const
     {
+        if(mVertices.size()==0)
+            return;
+
         //Iterate over the quads
         glColor3f(colour.x,colour.y,colour.z);
         glPointSize(5.f);
@@ -202,6 +205,23 @@ namespace anima
             glVertex3f(edgePointTop22.x,edgePointTop22.y,edgePointTop22.z);
         }
         glEnd();
+    }
+
+    float SpherePolyhedron::findLargestRadius() const
+    {
+        float maxRadiusSquared = 0;
+        for(size_t i = 0; i < mVertices.size(); ++i)
+            maxRadiusSquared = std::max(maxRadiusSquared, mVertices[i].distanceSquared(mCentre));
+        return sqrt(maxRadiusSquared);
+    }
+
+
+    float SpherePolyhedron::findSmallestRadius() const
+    {
+        float minRadiusSquared = mVertices.front().distanceSquared(mCentre);
+        for(size_t i = 1; i < mVertices.size(); ++i)
+            minRadiusSquared = std::min(minRadiusSquared, mVertices[i].distanceSquared(mCentre));
+        return sqrt(minRadiusSquared);
     }
 
 }

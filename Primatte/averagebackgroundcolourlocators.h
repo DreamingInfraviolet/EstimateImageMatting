@@ -5,6 +5,7 @@ namespace anima
 {
     namespace ia
     {
+    /** Chooses the average background colour as the barycentre of all points. */
         class ABCL_BarycentreBased : public IAverageBackgroundColourLocator
         {
         public:

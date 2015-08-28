@@ -93,7 +93,6 @@ namespace anima
           */
         float findDistanceToPolyhedron(const math::vec3& normalisedVector) const;
 
-
         /** Transforms the polyhedron towards the given centre and radius.
           * @param centre The new centre.
           * @param radius The new radius. */
@@ -102,7 +101,14 @@ namespace anima
         /** Returns the centre of the object. */
         math::vec3 centre() const { return mCentre; }
 
+        /** Returns the symbolic radius of the sphere. Not that fitting might make it wrong. */
         float radius() const {return mRadius; }
+
+        /** Finds the distance to furthest vertex from the centre. */
+        float findLargestRadius() const;
+
+        /** Finds the distance to the closest certex from the centre. */
+        float findSmallestRadius() const;
     };
 
 }
