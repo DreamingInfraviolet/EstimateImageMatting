@@ -32,7 +32,7 @@ void Application::timerEvent(QTimerEvent*)
 {
     update();
 }
-cv::Mat imageMat;
+
 void Application::init()
 {
     try
@@ -55,7 +55,7 @@ void Application::init()
 
         Inform("Processing input");
 
-        imageMat = cv::imread("test.jpg");
+        cv::Mat imageMat = cv::imread("test.jpg");
         cv::Mat backgroundMat = cv::imread("test_background.jpg");
         if(imageMat.data==nullptr || backgroundMat.data == nullptr)
             throw std::runtime_error("Could not load images");
